@@ -1,0 +1,2246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gradient Studio Lite — Pilot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+
+  :root{
+    /* ink ramp */
+    --ink:#0B0B0C;
+    --panel:#151517;
+    --raise:#212125;
+    --line:#212125;
+    --line-strong:#3C3C42;
+    /* type */
+    --text:#FFFFFF;
+    --text-2:#C2C2C9;
+    --muted:#9C9CA4;
+    /* accent */
+    --accent:#FFB601;
+    --on-accent:#0B0B0C;
+    /* radius */
+    --r-pill:999px;
+    --r-sm:8px;
+    --r-md:12px;
+    /* families */
+    --sans:"DM Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    --mono:"Geist Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  html,body{height:100%}
+  body{margin:0;background:var(--ink);color:var(--text);font-family:var(--sans);font-size:13px;
+    -webkit-font-smoothing:antialiased;display:flex;overflow:hidden}
+
+  /* ---------- rail ---------- */
+  #rail{width:328px;flex:0 0 328px;height:100vh;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column}
+  #railHead{padding:22px 22px 16px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .lockup{font-family:var(--mono);font-weight:500;font-size:10px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:9px}
+  .lockup .yf{color:var(--accent)}
+  .wordmark{font-family:var(--sans);font-weight:500;font-size:19px;letter-spacing:-.015em;line-height:1;margin:0;color:var(--text)}
+  .histbtns{display:flex;gap:5px;flex:0 0 auto}
+  .hb{width:28px;height:28px;border:1px solid var(--line);background:transparent;color:var(--muted);
+    border-radius:var(--r-pill);cursor:pointer;font-size:13px;line-height:1;padding:0;transition:.15s}
+  .hb svg{width:14px;height:14px;display:block;margin:0 auto;fill:none;stroke:currentColor;
+    stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .hb:hover:not(:disabled){color:var(--text);border-color:var(--line-strong)}
+  .hb:disabled{opacity:.3;cursor:default}
+
+  #railBody{flex:1;overflow-y:auto;padding:2px 22px 20px;scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent}
+  #railBody::-webkit-scrollbar{width:8px}
+  #railBody::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+
+  .group{padding:18px 0 8px;border-bottom:1px solid var(--line)}
+  .group:last-child{border-bottom:0}
+  .group[data-panel]{padding:0;border-bottom:1px solid var(--line)}
+  .phead{display:flex;align-items:center;justify-content:space-between;width:100%;
+    background:none;border:0;padding:15px 0 14px;cursor:pointer;color:var(--muted);
+    font-family:var(--mono);font-weight:500;font-size:10px;letter-spacing:.14em;text-transform:uppercase;transition:.15s}
+  .phead:hover{color:var(--text)}
+  .phead[aria-expanded="true"]{color:var(--text)}
+  .caret{width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;
+    transform:rotate(-45deg);transition:transform .18s;margin-right:2px;opacity:.75}
+  .phead[aria-expanded="true"] .caret{transform:rotate(45deg)}
+  .pbody{overflow:hidden;padding-bottom:10px}
+  .phead[aria-expanded="false"]+.pbody{display:none}
+  .glabel{font-family:var(--mono);font-weight:500;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:11px}
+
+  /* ---------- chips ---------- */
+  .chips{display:flex;flex-wrap:wrap;gap:5px}
+  /* a label for a chip group nested inside a titled block — reads as one of the
+     block's settings rather than as a new heading, and lets the chips take a
+     full-width row so they never clip against the panel edge */
+  .sublabel{font-size:11px;color:var(--muted);margin:10px 0 7px}
+  .chip{font-family:var(--sans);font-weight:500;font-size:11.5px;letter-spacing:0;color:var(--text-2);
+    background:transparent;border:1px solid var(--line);border-radius:var(--r-pill);
+    padding:5px 11px;cursor:pointer;transition:.15s;line-height:1.35}
+  .chip:hover{color:var(--text);border-color:var(--line-strong)}
+  .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+
+  /* ---------- rows ---------- */
+  .row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .row label{flex:1;font-size:12.5px;color:var(--text-2)}
+
+  input[type=range]{-webkit-appearance:none;appearance:none;width:110px;height:2px;background:var(--line-strong);
+    border-radius:2px;outline:none;cursor:pointer;flex:0 0 110px}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;
+    background:var(--accent);border:0;cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--accent);border:0;cursor:pointer}
+  input[type=range]:focus-visible{box-shadow:0 0 0 3px rgba(255,182,1,.28)}
+
+  input.num{width:54px;flex:0 0 54px;font-family:var(--mono);font-size:10.5px;color:var(--text);
+    background:transparent;border:1px solid transparent;border-radius:var(--r-sm);padding:5px 7px;text-align:right;outline:none;transition:.15s}
+  input.num:hover{border-color:var(--line)}
+  input.num:focus{border-color:var(--accent);background:var(--raise)}
+  input.num::-webkit-outer-spin-button,input.num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  input.num{-moz-appearance:textfield}
+  input.num.wide{width:72px;flex:0 0 72px;text-align:left}
+
+  select{font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;background:var(--raise);color:var(--text);
+    border:1px solid var(--line);border-radius:var(--r-sm);padding:6px 8px;outline:none;cursor:pointer}
+  select:focus{border-color:var(--accent)}
+
+  /* ---------- colour stops ---------- */
+  .stop{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+  .sw{position:relative;width:26px;height:26px;border-radius:var(--r-pill);border:1px solid rgba(255,255,255,.16);
+    overflow:hidden;cursor:pointer;flex:0 0 26px}
+  .sw input{position:absolute;inset:-6px;width:150%;height:150%;border:0;padding:0;background:none;cursor:pointer;opacity:0}
+  .stop .nm{flex:1;font-size:12.5px;color:var(--text-2)}
+  .stop .hex{font-family:var(--mono);font-size:10.5px;color:var(--muted);text-transform:uppercase}
+
+  /* ---------- image reference ---------- */
+  .drop{border:1px dashed var(--line-strong);border-radius:var(--r-md);padding:14px;text-align:center;cursor:pointer;transition:.15s;
+    font-family:var(--mono);font-weight:500;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .drop:hover,.drop.over{border-color:var(--accent);color:var(--text)}
+  .drop img{display:block;width:100%;height:76px;object-fit:cover;border-radius:var(--r-sm);margin-bottom:11px}
+  .refstrip{display:flex;gap:5px;margin-top:10px}
+  .refstrip span{flex:1;height:20px;border-radius:var(--r-pill);border:1px solid rgba(255,255,255,.14)}
+
+  /* ---------- foot ---------- */
+  #railFoot{border-top:1px solid var(--line);padding:16px 22px 16px;background:var(--panel)}
+  .btnrow{display:flex;gap:6px;margin-bottom:6px}
+  button.act{flex:1;font-family:var(--mono);font-weight:500;font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+    background:transparent;color:var(--text);border:1px solid var(--line);border-radius:var(--r-pill);
+    padding:10px 6px;cursor:pointer;transition:.15s}
+  button.act:hover{border-color:var(--line-strong);background:var(--raise)}
+  button.act.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+  button.act.primary:hover{background:#FFC634;border-color:#FFC634}
+  .foot-note{font-family:var(--sans);font-size:11px;line-height:1.5;color:var(--muted);margin-top:11px}
+  .colophon{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#5B5B63;margin-top:12px}
+
+  /* ---------- stage ---------- */
+  #stage{flex:1;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;position:relative;overflow:hidden}
+  #zoombar{position:absolute;right:22px;bottom:22px;display:flex;gap:4px;align-items:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--r-pill);padding:4px}
+  .zb{min-width:28px;height:28px;border:0;background:transparent;color:var(--muted);border-radius:var(--r-pill);
+    cursor:pointer;padding:0 6px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;transition:.15s}
+  .zb svg{width:13px;height:13px;display:block;margin:0 auto;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
+  .zb.wide{min-width:52px}
+  .zb:hover:not(:disabled){color:var(--text);background:var(--raise)}
+  .zb:disabled{opacity:.3;cursor:default}
+  #previewWrap{display:flex;align-items:center;justify-content:center;will-change:transform}
+  #previewWrap.grabbing{cursor:grabbing}
+  #previewWrap.pannable{cursor:grab}
+  #preview{box-shadow:0 30px 80px rgba(0,0,0,.65),0 0 0 1px rgba(255,255,255,.06);line-height:0;max-width:100%}
+  #preview svg{display:block;max-width:100%;max-height:calc(100vh - 158px);width:auto;height:auto}
+  #meta{font-family:var(--mono);font-weight:500;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--muted);margin-top:20px;display:flex;align-items:center;gap:12px}
+  #meta span+span::before{content:"/";color:var(--accent);margin-right:12px}
+  #toast{position:fixed;bottom:26px;left:50%;transform:translate(-50%,14px);opacity:0;pointer-events:none;
+    background:var(--raise);border:1px solid var(--line-strong);color:var(--text);font-family:var(--mono);
+    font-size:10.5px;letter-spacing:.06em;padding:10px 16px;border-radius:var(--r-pill);transition:.25s;z-index:9}
+  #toast.on{opacity:1;transform:translate(-50%,0)}
+
+  @media (max-width:900px){
+    body{flex-direction:column;overflow:auto}
+    #rail{width:100%;flex:none;height:auto;border-right:0;border-bottom:1px solid var(--line)}
+    #railBody{overflow:visible}
+    #stage{height:auto;padding:24px}
+    #preview svg{max-height:60vh}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<aside id="rail">
+  <div id="railHead">
+    <div>
+      <div class="lockup">Pilot<span class="yf">/Yellowfly</span></div>
+      <h1 class="wordmark">Gradient Studio <span style="opacity:.45">Lite</span></h1>
+    </div>
+    <div class="histbtns">
+      <button class="hb" id="undo" title="Undo (⌘Z)" disabled aria-label="Undo"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6h5.5a3.5 3.5 0 1 1 0 7H7"/><path d="M6.6 3.4 4 6l2.6 2.6"/></svg></button>
+      <button class="hb" id="redo" title="Redo (⇧⌘Z)" disabled aria-label="Redo"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M12 6H6.5a3.5 3.5 0 1 0 0 7H9"/><path d="M9.4 3.4 12 6l-2.6 2.6"/></svg></button>
+    </div>
+  </div>
+
+  <div id="railBody">
+
+    <div class="group" style="padding-top:16px">
+      <div class="btnrow">
+        <button class="act" id="randomize">Randomize</button>
+        <button class="act" id="resetAll">Reset</button>
+      </div>
+    </div>
+
+    <div class="group" data-panel>
+      <button class="phead" type="button" aria-expanded="false"><span>Palette</span><i class="caret"></i></button>
+      <div class="pbody">
+            <div class="chips" id="palettes"></div>
+      <div style="height:14px"></div>
+      <div class="stop"><span class="sw" id="sw0"><input type="color" id="c0"></span><span class="nm">Ground</span><span class="hex" id="h0"></span></div>
+      <div class="stop"><span class="sw" id="sw1"><input type="color" id="c1"></span><span class="nm">Middle</span><span class="hex" id="h1"></span></div>
+      <div class="stop"><span class="sw" id="sw2"><input type="color" id="c2"></span><span class="nm">Light</span><span class="hex" id="h2"></span></div>
+      <div class="glabel" style="margin:14px 0 8px">Sample an image</div>
+      <div class="drop" id="drop">
+        <img id="refThumb" alt="" hidden>
+        <span id="dropLabel">Drop an image or click</span>
+      </div>
+      <div class="refstrip" id="refStrip" hidden></div>
+      <div class="btnrow" id="refBtns" style="margin-top:8px" hidden>
+        <button class="act" id="remix">Re-mix triad</button>
+        <button class="act" id="clearRef" style="flex:0 0 74px">Clear</button>
+      </div>
+      <input type="file" id="file" accept="image/*" hidden>
+</div>
+    </div>
+
+    <div class="group" data-panel>
+      <button class="phead" type="button" aria-expanded="false"><span>Frame</span><i class="caret"></i></button>
+      <div class="pbody">
+            <div class="chips" id="frames"></div>
+</div>
+    </div>
+
+    <div class="group" data-panel>
+      <button class="phead" type="button" aria-expanded="false"><span>Field</span><i class="caret"></i></button>
+      <div class="pbody">
+            <div class="chips" id="forms" style="margin-bottom:12px"></div>
+      <div class="row" data-ctrl="width"><label>Width</label></div>
+      <div class="row" data-ctrl="height"><label>Height</label></div>
+      <div class="row" data-ctrl="offsetX"><label>Offset X</label></div>
+      <div class="row" data-ctrl="offsetY"><label>Offset Y</label></div>
+      <div class="row" data-ctrl="blur"><label>Blur</label></div>
+      <div class="glabel" style="margin:16px 0 8px">Shadow</div>
+      <div class="sublabel">Shape</div>
+      <div class="chips" id="shadowShapes" style="margin-bottom:2px"></div>
+      <div class="row" data-ctrl="erodeDepth"><label>Depth</label></div>
+      <div class="row" data-ctrl="erodeCount"><label>Count</label></div>
+      <div class="row" data-ctrl="erodeSpread"><label>Spread</label></div>
+      <div class="row" data-ctrl="shadowSoft"><label>Softness</label></div>
+      <div class="sublabel">Enters from</div>
+      <div class="chips" id="erodeSides" style="margin-bottom:2px"></div>
+      <div class="row">
+        <label for="seedNum">Seed</label>
+        <input type="number" class="num wide" id="seedNum" min="1" max="999" step="1">
+        <button class="act" id="shuffle" style="flex:0 0 88px;padding:7px 4px">Shuffle</button>
+      </div>
+</div>
+    </div>
+
+    <div class="group" data-panel>
+      <button class="phead" type="button" aria-expanded="false"><span>Light</span><i class="caret"></i></button>
+      <div class="pbody">
+      <div class="glabel" style="margin-bottom:8px">Direction</div>
+      <div class="chips" id="dirs" style="margin-bottom:12px"></div>
+      <div class="row" data-ctrl="mid"><label>Middle point</label></div>
+      <div class="row" data-ctrl="falloff"><label>Falloff</label></div>
+      </div>
+    </div>
+
+
+    <div class="group" data-panel>
+      <button class="phead" type="button" aria-expanded="false"><span>Motion</span><i class="caret"></i></button>
+      <div class="pbody">
+      <div class="row" data-ctrl="drift"><label>Drift</label></div>
+      <div class="glabel" style="margin-bottom:8px">Direction</div>
+      <div class="chips" id="drifts"></div>
+      </div>
+    </div>
+
+    <div class="group" data-panel>
+      <button class="phead" type="button" aria-expanded="false"><span>Finish</span><i class="caret"></i></button>
+      <div class="pbody">
+      <div class="row" data-ctrl="exposure"><label>Exposure</label></div>
+      <div class="row" data-ctrl="sat"><label>Saturation</label></div>
+      <div class="row" data-ctrl="contrast"><label>Contrast</label></div>
+      <div class="row" data-ctrl="highlights"><label>Highlights</label></div>
+      <div class="row" data-ctrl="midtones"><label>Midtones</label></div>
+      <div class="row" data-ctrl="shadows"><label>Shadows</label></div>
+      <div class="glabel" style="margin:14px 0 8px">Grain</div>
+      <div class="row"><label for="grainStyle">Tone</label>
+        <select id="grainStyle">
+          <option value="neutral">Film</option>
+          <option value="colored">Colored</option>
+          <option value="shadow">Shadow</option>
+        </select>
+      </div>
+      <div class="row" data-ctrl="grain"><label>Amount</label></div>
+      <div class="row" data-ctrl="grainSize"><label>Scale</label></div>
+</div>
+    </div>
+
+  </div>
+
+  <div id="railFoot">
+    <div class="btnrow">
+      <button class="act primary" id="copySvg">Copy SVG</button>
+      <button class="act" id="dlSvg">SVG</button>
+    </div>
+    <div class="btnrow">
+      <button class="act" id="png1">PNG 1×</button>
+      <button class="act" id="png2">PNG 2×</button>
+      <button class="act" id="png4">PNG 4×</button>
+    </div>
+    <div class="foot-note">Copy SVG, then paste onto a Figma canvas. Texture is written as Figma's own noise filter, so it lands as a live effect on the frame.</div>
+    <div class="colophon">Pilot, Inc. &copy; 2005—2026</div>
+  </div>
+</aside>
+
+<main id="stage">
+  <div id="previewWrap"><div id="preview"></div></div>
+  <div id="meta"><span id="mDim"></span><span id="mForm"></span><span id="mSeed"></span></div>
+  <div id="zoombar">
+    <button class="zb" id="zoomOut" title="Zoom out (−)" aria-label="Zoom out"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9"/></svg></button>
+    <button class="zb wide" id="zoomReset" title="Reset zoom (0)">100%</button>
+    <button class="zb" id="zoomIn" title="Zoom in (+)" aria-label="Zoom in"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9"/><path d="M8 3.5v9"/></svg></button>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+/* ---------- color ---------- */
+function hexToRgb(h){
+  h=String(h).replace('#','').trim();
+  if(h.length===3)h=h.split('').map(c=>c+c).join('');
+  const n=parseInt(h,16);
+  return [(n>>16)&255,(n>>8)&255,n&255];
+}
+function rgbToHex(r,g,b){
+  const f=v=>clamp(Math.round(v),0,255).toString(16).padStart(2,'0');
+  return '#'+f(r)+f(g)+f(b);
+}
+function rgbToHsl(r,g,b){
+  r/=255;g/=255;b/=255;
+  const mx=Math.max(r,g,b),mn=Math.min(r,g,b);let h=0,s=0;const l=(mx+mn)/2;
+  if(mx!==mn){const d=mx-mn;s=l>.5?d/(2-mx-mn):d/(mx+mn);
+    if(mx===r)h=(g-b)/d+(g<b?6:0);else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;h/=6;}
+  return [h,s,l];
+}
+function hslToRgb(h,s,l){
+  h=((h%1)+1)%1;
+  if(s===0){const v=l*255;return[v,v,v];}
+  const q=l<.5?l*(1+s):l+s-l*s,p=2*l-q;
+  const f=t=>{t=((t%1)+1)%1;
+    if(t<1/6)return p+(q-p)*6*t;
+    if(t<1/2)return q;
+    if(t<2/3)return p+(q-p)*(2/3-t)*6;
+    return p;};
+  return [f(h+1/3)*255,f(h)*255,f(h-1/3)*255];
+}
+function mixHex(a,b,t){
+  const A=hexToRgb(a),B=hexToRgb(b);
+  return rgbToHex(A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t,A[2]+(B[2]-A[2])*t);
+}
+/* the ground, lifted a couple of percent and nudged in hue — a shadow that is
+   very slightly not the same shadow everywhere */
+function shadowTone(){
+  /* This layer is called shadow depth and was lightening the ground: on a dark
+     palette it added 0.034 of lightness, so the deepest part of the picture was
+     being lifted by the very layer meant to deepen it. It now always goes down,
+     keeping the small hue shift that stops the dark reading as one flat colour. */
+  const [r,g,b]=hexToRgb(col(0));
+  const [h,sa,l]=rgbToHsl(r,g,b);
+  const [R,G,B]=hslToRgb(h+0.028,clamp(sa*0.95,0,1),clamp(l-0.030,0,1));
+  return rgbToHex(R,G,B);
+}
+function lum(hex){const[r,g,b]=hexToRgb(hex);return 0.2126*r+0.7152*g+0.0722*b;}
+
+/* saturation is applied at render time so the stored palette stays intact */
+function col(i){
+  const hex=S.colors[i];
+  if(Math.abs(S.sat-1)<0.005 && Math.abs(S.contrast-1)<0.005
+     && Math.abs(S.highlights)<0.005 && Math.abs(S.midtones)<0.005 && Math.abs(S.shadows)<0.005
+     && Math.abs(S.exposure)<0.005)return hex;
+  const [r,g,b]=hexToRgb(hex);
+  const [h,s,l]=rgbToHsl(r,g,b);
+  let L=clamp(0.5+(l-0.5)*S.contrast,0,1);
+  /* photographic, not per-stop: each colour is lifted or pulled in proportion
+     to how bright it already is, so the sliders find the highlight and the
+     shadow wherever they happen to sit in the palette */
+  /* Highlights used to start biting only above L 0.42, which on these palettes
+     is the light stop alone — a sliver of the frame — while Shadows moves the
+     ground and so moves nearly all of it. Widening the highlight's reach down
+     into the midtones makes the two controls feel like a matched pair without
+     touching the ground. */
+  const wHi=clamp((L-0.26)/0.54,0,1), wLo=clamp((0.58-L)/0.58,0,1);
+  /* Midtones is a bell centred where the middle stop usually sits, tapering to
+     nothing at both ends so it cannot fight Highlights or Shadows. Like
+     Highlights it is a gain rather than added lightness, so the middle of the
+     ramp brightens without draining its colour. */
+  const wMid=Math.pow(Math.max(0,1-Math.abs(L-0.40)/0.29),1.5);
+  /* Shadows reach further down than they used to: at the dark baseline the ground
+     is most of the picture, and a control that could only take it part of the way
+     to black was the limit people kept hitting. */
+  /* Shadows stay additive on lightness: lifting the floor is what a shadow
+     control does, and nothing multiplicative can raise a near-black ground at all.
+     Highlights are the opposite case and were wrong here. Adding lightness in HSL
+     drags a colour toward white as it brightens — measured, pushing Highlights up
+     took Rosa's bright band from 61% chroma to 37% and Gold Bar's from 48% to 29%,
+     so the control read as a wash rather than as more light. A gain does the job
+     properly: channels scale together, so the highlight gets brighter while
+     holding its hue and saturation. Above unity it goes through the screen curve
+     rather than a straight multiply, which brightens without clipping a channel
+     into a hue shift. */
+  L=clamp(L+S.shadows*0.52*wLo,0,1);
+  let [R,G,B]=hslToRgb(h,clamp(s*S.sat,0,1),L);
+  const gain=(amt,w,k)=>{
+    if(Math.abs(amt)<=0.002||w<=0.001)return;
+    const gn=Math.pow(2,amt*k*w);
+    const lift=v=>gn>=1 ? 255*(1-Math.pow(1-clamp(v,0,255)/255,gn)) : v*gn;
+    R=clamp(lift(R),0,255); G=clamp(lift(G),0,255); B=clamp(lift(B),0,255);
+  };
+  gain(S.highlights,wHi,1.25);
+  gain(S.midtones,wMid,1.05);
+  /* Exposure last, and multiplicative on RGB — the photographic move. Scaling the
+     channels together holds hue and saturation exactly, where pulling lightness in
+     HSL washes the colour out as it darkens. */
+  if(Math.abs(S.exposure)>0.002){
+    const k=Math.pow(2,S.exposure*(S.exposure<0?2.0:1.0));
+    R=clamp(R*k,0,255); G=clamp(G*k,0,255); B=clamp(B*k,0,255);
+  }
+  return rgbToHex(R,G,B);
+}
+
+/* The warp is three things, and they used to be one slider called Organic:
+     amount  — how far the edge travels (S.organic)
+     detail  — how many waves fit around it (S.warpFreq)
+     variety — how irregular they are (S.warpRand)
+   With variety at zero the harmonics sit in phase and the result is a regular,
+   almost architectural undulation; at full it is the scattered wobble the old
+   single control always produced. */
+function waveFn(rng){
+  const det=clamp(S.warpFreq==null?0.35:S.warpFreq,0,1);
+  const rnd=clamp(S.warpRand==null?0.6:S.warpRand,0,1);
+  /* Detail sets how many waves fit round the shape, and the count is now drawn
+     from a range rather than fixed — two seeds at the same Detail give four and
+     six lobes rather than the same five, which is where the variety was missing.
+     The harmonics are also no longer whole multiples of each other: at 1.9 and
+     3.3 times the base they never line up twice round the shape, so the outline
+     stops repeating itself. */
+  const base=0.6+det*3.2+rng()*(0.5+det*1.9)*rnd;
+  const parts=[
+    {f:base,        a:1},
+    {f:base*1.9,    a:0.26+rnd*0.5},
+    {f:base*3.3,    a:rnd*0.5},
+    {f:base*0.55,   a:0.25+rnd*0.55}   /* a slow swell under the rest */
+  ].map(p=>({f:p.f, a:p.a*(1-rnd*0.4+rng()*rnd*0.8), ph:rng()*Math.PI*2*Math.max(0.12,rnd)}));
+  const norm=parts.reduce((s,p)=>s+p.a,0)||1;
+  /* Skew makes the crests and troughs unequal — rounded one side, pinched the
+     other — which is what stops a warped edge reading as a plain sine. */
+  const skew=(rng()-0.5)*rnd*0.9;
+  return t=>{
+    let v=0; for(const p of parts)v+=p.a*Math.sin(t*p.f*Math.PI*2+p.ph);
+    v/=norm;
+    return v/(1+skew*v);
+  };
+}
+/* Which side the warp enters from — keyed to where a point actually sits relative
+   to the field's centre, not to how far along the outline it is. Point order
+   depends on the form, so an index-based lobe put the deformation on whichever
+   side the shape happened to start from: asking for Right warped the top. */
+const WARPVEC={top:[0,-1],right:[1,0],bottom:[0,1],left:[-1,0]};
+/* Which side the warp enters from, judged by the edge's own outward normal rather
+   than by where the point sits relative to the centre. On a wide field the top
+   corners point sideways from the centre, so a centre-based lobe attributed half
+   the top edge to left and right and the control never bit cleanly. The normal is
+   (0,-1) all along the top however wide the field is. */
+function warpLobe(nx,ny){
+  const v=WARPVEC[S.fieldDir];
+  if(!v)return 1;
+  const dot=nx*v[0]+ny*v[1];
+  return 0.08+0.92*Math.pow(Math.max(0,dot),1.1);
+}
+/* Warp and Light have to be told about each other. An edge facing the light shows
+   every millimetre it moves; an edge facing away is displacing dark into dark and
+   shows almost nothing — measured, warping the lit side registered 11.5 against
+   the unlit side's 2.0, so From Bottom on a top-lit gradient looked broken when it
+   was working perfectly. The unlit side is now given more travel to compensate, so
+   the four directions read at comparable strength whichever way the light runs. */
+function warpLightComp(nx,ny){
+  const lv=DIRVEC[S.dir]||[0,-1];
+  const facing=Math.max(0,nx*lv[0]+ny*lv[1]);
+  return 1+(1-facing)*1.5;
+}
+
+/* ---------- fixed structure ---------- */
+/* 14x10 is the Members Deck's print size. At 1680x1200 a 2x export lands at
+   3360x2400 — 240dpi across 14 inches. */
+const FRAMES={'4:5':[1080,1350],'16:9':[1920,1080],'1:1':[1080,1080],'9:16':[1080,1920],'14\u00d710':[1680,1200]};
+/* Lite lists only the five that carry COJE's references. The other renderers are
+   left in the file but unreachable — nothing selects them — which keeps this a
+   configuration of the full tool rather than a fork of it. One list, not two:
+   with the geometric group down to Field alone, the split said nothing. */
+/* Dome is out of the picker. It was built to make the reference's concave shadow by
+   cutting a dome from the field, and that is the wrong mechanism: the reference's
+   dark centre is not a shape, it is the ramp bottoming out, bounded by a thin light
+   strip at each frame edge. The strip is what makes the middle read as concave. The
+   code stays, unreachable, in case a cut dome is ever wanted for its own sake. */
+/* The field is always the approved rectangle. What used to be a form picker is now a
+   picker for the SHADOW'S character — five ways of eating into that rectangle rather
+   than five different rectangles. Orb is retired with the rest: it was the last
+   survivor of the shape zoo and it is not what this tool is for.
+   Each preset is a profile along the perimeter, a spread of depths and widths, and
+   how symmetrical the bite is. The three sliders scale whatever the preset asks for,
+   so the preset sets the character and the sliders set the amount. */
+const FORMS=[['field','Field','org']];
+const SHADOWS=[
+  ['swell','Swell'],     /* one broad soft mass leaning in */
+  ['scallop','Scallop'], /* an even row of rounded bites */
+  ['wedge','Wedge'],     /* steep on one flank, long tail on the other */
+  ['fray','Fray'],       /* many shallow bites, a ragged edge */
+  ['drift','Drift']      /* uneven: one dominant, others incidental */
+];
+const SHADOWPROFILE={
+  /* count, width, depth are multipliers on the sliders; skew bends the bite so its
+     two flanks differ; power shapes the falloff — below 1 broadens the belly. */
+  /* Widths are generous relative to depth on purpose: a bite deeper than it is wide
+     comes to a point, and a point reads as a spike stabbing the field rather than a
+     shadow lying across it. Every profile here is wider than it is deep at the
+     default depth. */
+  swell:  {count:0.34, width:2.10,depth:1.15, skew:0.15, power:0.62, vary:0.25, lump:0.55},
+  scallop:{count:1.6,  width:1.15,depth:0.58, skew:0.10, power:0.85, vary:0.20, lump:0.35},
+  wedge:  {count:0.5,  width:1.75,depth:1.05, skew:0.80, power:0.75, vary:0.30, lump:0.70},
+  fray:   {count:2.8,  width:0.62,depth:0.50, skew:0.25, power:1.00, vary:0.85, lump:1.00},
+  drift:  {count:1.0,  width:1.35,depth:0.95, skew:0.40, power:0.72, vary:0.95, lump:0.85}
+};
+/* forms that compose their own masses instead of one inset shape */
+const REPLACE={mesh:1,orb:1};
+const DIRS=[['up','Top'],['upright','Top R'],['right','Right'],['downright','Btm R'],
+            ['down','Bottom'],['downleft','Btm L'],['left','Left'],['upleft','Top L']];
+/* Silhouettes traced from the reference art, normalised to height 1.0 and
+   centred on the origin. Contour 0 is the outline, wound positive; any that
+   follow are holes wound negative, so the nonzero fill cuts them out. */
+const ICON_COUPE=[[[0.065,-0.5],[0.229,-0.493],[0.305,-0.486],[0.345,-0.478],[0.36,-0.471],[0.362,-0.464],[0.361,-0.399],[0.356,-0.37],[0.346,-0.334],[0.331,-0.305],[0.312,-0.283],[0.284,-0.261],[0.243,-0.24],[0.205,-0.225],[0.1,-0.196],[0.085,-0.189],[0.073,-0.182],[0.059,-0.167],[0.045,-0.146],[0.039,-0.131],[0.03,-0.095],[0.023,-0.052],[0.019,-0.008],[0.014,0.107],[0.014,0.194],[0.019,0.288],[0.026,0.339],[0.032,0.361],[0.038,0.375],[0.05,0.389],[0.064,0.397],[0.142,0.404],[0.185,0.411],[0.212,0.418],[0.229,0.426],[0.239,0.433],[0.242,0.44],[0.242,0.455],[0.238,0.462],[0.226,0.469],[0.182,0.483],[0.143,0.491],[0.074,0.498],[0.028,0.5],[-0.028,0.5],[-0.074,0.498],[-0.143,0.491],[-0.182,0.483],[-0.226,0.469],[-0.238,0.462],[-0.242,0.455],[-0.242,0.44],[-0.239,0.433],[-0.229,0.426],[-0.212,0.418],[-0.185,0.411],[-0.142,0.404],[-0.064,0.397],[-0.05,0.389],[-0.038,0.375],[-0.032,0.361],[-0.026,0.339],[-0.019,0.288],[-0.014,0.194],[-0.014,0.107],[-0.019,-0.008],[-0.023,-0.052],[-0.03,-0.095],[-0.039,-0.131],[-0.045,-0.146],[-0.059,-0.167],[-0.073,-0.182],[-0.085,-0.189],[-0.1,-0.196],[-0.205,-0.225],[-0.243,-0.24],[-0.284,-0.261],[-0.312,-0.283],[-0.331,-0.305],[-0.346,-0.334],[-0.356,-0.37],[-0.361,-0.399],[-0.362,-0.464],[-0.36,-0.471],[-0.345,-0.478],[-0.305,-0.486],[-0.229,-0.493],[-0.065,-0.5]]];
+const ICON_FLUTE=[[[0.032,-0.5],[0.086,-0.493],[0.094,-0.487],[0.102,-0.4],[0.112,-0.254],[0.113,-0.188],[0.108,-0.128],[0.102,-0.101],[0.091,-0.068],[0.066,-0.021],[0.052,-0.001],[0.032,0.032],[0.021,0.065],[0.016,0.105],[0.011,0.191],[0.01,0.271],[0.014,0.358],[0.018,0.384],[0.023,0.404],[0.035,0.424],[0.046,0.431],[0.094,0.437],[0.119,0.444],[0.133,0.451],[0.141,0.457],[0.143,0.464],[0.142,0.471],[0.136,0.477],[0.123,0.484],[0.102,0.491],[0.063,0.497],[0.028,0.5],[-0.028,0.5],[-0.063,0.497],[-0.102,0.491],[-0.123,0.484],[-0.136,0.477],[-0.142,0.471],[-0.143,0.464],[-0.141,0.457],[-0.133,0.451],[-0.119,0.444],[-0.094,0.437],[-0.046,0.431],[-0.035,0.424],[-0.023,0.404],[-0.018,0.384],[-0.014,0.358],[-0.01,0.271],[-0.011,0.191],[-0.016,0.105],[-0.021,0.065],[-0.032,0.032],[-0.052,-0.001],[-0.066,-0.021],[-0.091,-0.068],[-0.102,-0.101],[-0.108,-0.128],[-0.113,-0.188],[-0.112,-0.254],[-0.102,-0.4],[-0.094,-0.487],[-0.086,-0.493],[-0.032,-0.5]]];
+const ICON_PIANO=[[[0.334,-0.483],[0.27,-0.403],[0.264,-0.363],[0.273,-0.338],[0.316,-0.296],[0.5,-0.224],[0.524,-0.202],[0.537,-0.171],[0.522,-0.121],[0.484,-0.082],[0.429,-0.053],[0.338,-0.022],[0.523,-0.02],[0.522,0.14],[0.511,0.142],[0.509,0.158],[0.463,0.173],[0.444,0.206],[0.43,0.385],[0.422,0.394],[0.43,0.405],[0.425,0.42],[0.401,0.422],[0.393,0.414],[0.396,0.396],[0.412,0.396],[0.414,0.387],[0.402,0.382],[0.391,0.212],[0.383,0.189],[0.361,0.163],[0.337,0.151],[0.304,0.148],[0.272,0.154],[0.27,0.162],[0.199,0.165],[0.198,0.179],[0.151,0.181],[0.15,0.194],[0.112,0.217],[0.098,0.253],[0.082,0.451],[0.073,0.457],[0.079,0.459],[0.076,0.467],[0.083,0.478],[0.076,0.498],[0.06,0.5],[0.055,0.493],[0.047,0.498],[0.038,0.486],[0.041,0.47],[0.053,0.463],[0.041,0.481],[0.046,0.48],[0.054,0.494],[0.054,0.479],[0.064,0.467],[0.043,0.454],[0.042,0.438],[0.048,0.442],[0.056,0.418],[0.044,0.419],[0.043,0.413],[0.04,0.418],[0.026,0.252],[0.013,0.226],[-0.005,0.211],[0.004,0.208],[-0.024,0.205],[-0.033,0.189],[-0.048,0.189],[-0.111,0.383],[-0.112,0.413],[-0.094,0.427],[-0.092,0.462],[-0.181,0.467],[-0.162,0.463],[-0.18,0.462],[-0.179,0.456],[-0.142,0.449],[-0.222,0.455],[-0.171,0.446],[-0.253,0.451],[-0.198,0.442],[-0.216,0.442],[-0.216,0.418],[-0.201,0.417],[-0.2,0.405],[-0.188,0.406],[-0.188,0.252],[-0.181,0.218],[-0.187,0.222],[-0.189,0.19],[-0.218,0.188],[-0.226,0.179],[-0.274,0.176],[-0.312,0.193],[-0.334,0.228],[-0.352,0.419],[-0.361,0.421],[-0.363,0.455],[-0.379,0.461],[-0.383,0.444],[-0.371,0.428],[-0.388,0.418],[-0.378,0.385],[-0.391,0.384],[-0.385,0.379],[-0.392,0.375],[-0.402,0.236],[-0.397,0.226],[-0.406,0.225],[-0.412,0.207],[-0.428,0.19],[-0.413,0.187],[-0.477,0.17],[-0.479,0.159],[-0.528,0.157],[-0.529,0.137],[-0.537,0.134],[-0.536,0.087],[-0.493,0.073],[-0.477,0.059],[-0.482,-0.018],[-0.309,-0.018],[-0.263,-0.132],[-0.141,-0.146],[0.168,-0.479],[0.164,-0.486],[0.046,-0.359],[0.156,-0.481],[0.165,-0.5],[0.331,-0.497]],[[-0.165,0.371],[-0.145,0.31],[-0.164,0.411],[-0.134,0.415],[-0.133,0.195],[-0.162,0.192]],[[-0.071,0.191],[-0.083,0.222],[-0.079,0.196],[-0.108,0.197],[-0.109,0.297],[-0.099,0.277],[-0.11,0.311],[-0.11,0.37],[-0.054,0.19]],[[-0.488,0.11],[-0.134,0.127],[-0.132,0.111],[-0.489,0.095]]];
+const ICON_CHANDELIER=[[[1.373,0.252],[1.361,0.279],[1.332,0.303],[1.308,0.31],[1.093,0.339],[0.822,0.354],[0.802,0.381],[0.753,0.41],[0.607,0.455],[0.411,0.486],[0.156,0.5],[-0.093,0.493],[-0.301,0.469],[-0.536,0.419],[-0.735,0.352],[-0.835,0.37],[-0.976,0.384],[-1.095,0.386],[-1.207,0.377],[-1.287,0.357],[-1.332,0.334],[-1.363,0.301],[-1.375,0.261],[-1.372,0.227],[-1.357,0.196],[-1.334,0.169],[-1.288,0.137],[-1.2,0.093],[-1.066,0.039],[-0.854,-0.026],[-0.862,-0.09],[-0.844,-0.151],[-0.8,-0.202],[-0.741,-0.236],[-0.646,-0.263],[-0.542,-0.279],[-0.455,-0.287],[-0.276,-0.287],[-0.22,-0.326],[-0.144,-0.368],[-0.061,-0.404],[0.041,-0.437],[0.234,-0.476],[0.48,-0.5],[0.681,-0.496],[0.844,-0.467],[0.932,-0.437],[0.995,-0.406],[1.088,-0.343],[1.175,-0.252],[1.234,-0.158],[1.267,-0.09],[1.301,0.006],[1.341,0.169],[1.364,0.191],[1.375,0.222]],[[-0.798,0.088],[-0.807,0.084],[-1.024,0.16],[-1.209,0.241],[-1.088,0.256],[-0.907,0.252],[-0.916,0.2],[-0.907,0.173],[-0.892,0.155],[-0.844,0.129],[-0.782,0.122]],[[-0.659,0.048],[-0.663,0.052],[-0.646,0.095],[-0.639,0.146],[-0.578,0.162],[-0.54,0.158],[-0.514,0.115],[-0.484,0.017]],[[0.173,0.124],[0.187,0.144],[0.211,0.156],[0.316,0.18],[0.429,0.193],[0.594,0.202],[0.757,0.202],[0.677,0.135],[0.531,0.062],[0.375,0.017],[0.241,-0.008],[0.2,-0.01]],[[-0.274,0.334],[-0.052,0.357],[0.222,0.361],[0.451,0.343],[0.31,0.325],[0.198,0.301],[0.138,0.279],[0.088,0.249],[0.052,0.207],[0.03,0.146],[0.03,0.09],[0.059,-0.017],[0.055,-0.024],[-0.108,-0.026],[-0.299,-0.012],[-0.373,0.202],[-0.401,0.245],[-0.429,0.274],[-0.458,0.292]],[[-0.52,-0.14],[-0.63,-0.124],[-0.703,-0.1],[-0.715,-0.09],[-0.721,-0.07],[-0.717,-0.061],[-0.429,-0.109],[-0.408,-0.144]],[[0.052,-0.234],[0.109,-0.207],[0.151,-0.175],[0.182,-0.129],[0.308,-0.115],[0.429,-0.091],[0.567,-0.052],[0.654,-0.015],[0.737,0.03],[0.811,0.084],[0.867,0.144],[0.896,0.2],[1.064,0.191],[1.187,0.176],[1.129,-0.01],[1.057,-0.14],[1.03,-0.175],[0.961,-0.238],[0.91,-0.27],[0.849,-0.299],[0.762,-0.325],[0.684,-0.337],[0.605,-0.343],[0.473,-0.341],[0.334,-0.33],[0.171,-0.307],[0.071,-0.285],[-0.019,-0.254]]];
+/* Spin is gone in Lite: on a soft field it reads as a smudge rather than as
+   movement, and none of COJE's references show anything like it. */
+const FIELDDIRS=[['light','Follow light'],['top','Top'],['right','Right'],['bottom','Bottom'],['left','Left']];
+const DRIFTDIRS=[['across','Across'],['along','Along']];
+
+const PALETTES=[
+  /* Read from the five gradients currently in the deck rather than carried forward.
+     The palettes had drifted a long way through the darkening and lifting rounds —
+     the deck's grounds sit near COJE's originals (#410813 against the original
+     #420714 for Member's Bar) while ours had been lifted to #2C050D. Each triad
+     below is measured from a deck gradient: ground from its darkest decile, mid from
+     the median band, light from its brightest few percent.
+     The mapping of deck to room is by colour family and is a guess worth checking:
+     Member's Bar and Rosa Lounge are unmistakable, Gold Bar and Dining Room less so.
+     A fifth deck gradient — #410813 / #673224 / #9A6A3B, warm brown on maroon —
+     matches no room name and is not included. */
+  {g:'room',n:'Dining Room', c:['#0B0A0A','#1F1A14','#332617']},
+  /* Gold Bar moved from deck 3 to deck 2. Deck 3 renders at a highlight of 163
+     against deck 2's 112 — the presets each matched their assigned source to
+     within 2%, so the brightness complaint was the mapping, not the values. */
+  {g:'room',n:'Gold Bar',    c:['#410813','#673224','#9A6A3B']},
+  {g:'room',n:"Member's Bar",c:['#410813','#5E4656','#747486']},
+  {g:'room',n:'Rosa Lounge', c:['#381507','#762722','#CF8042']}
+  /* Palettes sit at roughly ground x0.62, mid and light x0.80 of the values COJE
+     supplied — brought back up from the x0.41 / x0.45 / x0.38 of the dark rounds,
+     but not all the way to the originals. Deep grounds with luminous cores, which
+     is what the approved references do: their light stops read 135 to 217 while
+     their grounds sit near zero. Scaled in RGB, which holds hue and saturation exactly: measured
+     drift across all twelve colours is 3.7 degrees of hue and 0.007 of saturation,
+     so each room keeps its family and only loses light. COJE's originals are kept
+     alongside, since these are their colours and the source values should not have
+     to be dug out of version history:
+       Dining Room   #29131D #99904C #C6C6BA
+       Gold Bar      #BD582D #DA9835 #F1D8A5
+       Member's Bar  #420714 #ADB3C4 #C4C6A0
+       Rosa Lounge   #511C18 #7B191E #F2B164 */
+        ];
+
+/* one filter chassis, four grades of tooth — Figma exposes the same
+   baseFrequency / octaves knobs on its native noise effect */
+const TEXTURES={
+  /* baseFrequency 2 puts the noise period at half a pixel — right at the
+     sampling limit, where its rendered strength swings wildly with render scale.
+     0.55 puts it near two pixels: stable at any size, and the same in the
+     preview, the PNG and Figma. */
+  /* Scale divides this frequency, so a Scale below 1 would push the noise
+     period under a pixel — the sampling limit that made grain render
+     differently at every size. The slider's floor is 1 for that reason. */
+  grain: {fx:0.90,  fy:0.90, oct:2, nGain:1.5}
+  /* Tooth, Washi and Mottle are parked — none of them held up next to Grain.
+     The engine reads this map by key, so re-adding a profile here and an option
+     to the Tone group's markup is all it takes to bring one back:
+       tooth: {fx:0.7, fy:0.7, oct:2, nGain:1.35},
+       washi: {fx:0.004, fy:0.55, oct:2, mono:true, nGain:1.05},
+       mottle:{fx:0.030, fy:0.030, oct:4, mono:true, nGain:0.6}          */
+};
+
+const S={
+  frame:'4:5', form:'field', dir:'up',
+  colors:['#0B0A0A','#1F1A14','#332617'], mid:0.48, falloff:0.42, depth:0, exposure:0, sat:1.12, contrast:1, highlights:0, midtones:0, shadows:0,
+  /* A darker baseline: more ground around the field, the middle stop set further
+     along the ramp, a little more blur. The work is meant to sit in the dark. */
+  /* Lite opens where COJE's references sit rather than where the dark rounds left
+     the full tool. Calibrated against them: at these defaults the three room
+     palettes render at mean 91, 119 and 66 against the references' 95, 140 and 68,
+     and the hues land within a couple of degrees. */
+  /* Margin opens at 9%, not 2%. At 2% the blurred field bleeds to the frame edge
+     and the ground never reads: measured, the border sat 36 levels above the
+     darkest value in the picture, so the deepest tone ended up inside the field
+     rather than around it. At 9% that gap closes to about 9, which is where the
+     references sit. */
+  /* Matched to the reference itself rather than to an average of all seven. Its lit
+     mass measures 0.88 of the frame wide by 0.55 tall and covers 43.7%, with the
+     frame edge sitting 12.7 levels above the darkest value. The earlier 76% default
+     came from calibrating the edge gap alone, which held the ground but made the
+     field narrower than anything the references show — 0.74 against 0.88.
+     Width and height alone could not close it: at 90% wide the lit mass matched but
+     the edge gap doubled, because the blur spreads the field's light past its own
+     boundary and a wide field has less frame left to absorb it. The blur had to come
+     down with the size. At 90 / 80 / 4 the output measures 0.88 by 0.56, covers
+     43.4% and holds a 14.2 edge gap — the reference on every count. */
+  width:0.90, height:0.80, offsetX:0, offsetY:0, blur:0.04,
+/* Warp opens at 6%, not 35%. The base gradient is a clean soft rectangle in the
+     reference — its top edge wanders 1.7px — and at 35% ours wandered 10.4px, which
+     the old 10% blur had been hiding. With the blur down to 4% to hold the frame
+     edge dark, the warp became visible on load. 6% measures 2.2px: still organic,
+     not yet a shape. The slider is there for anyone who wants more. */
+  organic:0, warpFreq:0.35, warpRand:0.6, fieldDir:'light',
+  /* The default opens as the approved gradient with a hint in it, not with a
+     shadow across half the frame — 20% was a demonstration value, not a resting
+     one. */
+  shadow:'swell', shadowSoft:0.7, erodeDepth:0.13, erodeCount:3, erodeSpread:0.16, erodeSides:'auto',  drift:0, seed:184,
+  driftDir:'across',
+  grain:0.07, grainSize:1, grainStyle:'neutral', texture:'grain',
+  ref:[]
+};
+
+/* every numeric control: raw range value, plus the scale used in the number box */
+const CTRLS=[
+  {id:'mid',      min:0.25,max:0.75,step:0.01, scale:100,dec:0,unit:'%'},
+  {id:'falloff',  min:0,   max:1,   step:0.01, scale:100,dec:0,unit:'%'},
+  {id:'exposure', min:-1,  max:0.6, step:0.01, scale:100,dec:0,unit:'%'},
+  /* Ceiling raised to 300%: the dark baseline costs perceived chroma, and the old
+     200% was inside the useful range. Measured, the gain runs out at about 300 —
+     350 adds 0.002 and 400 adds 0.001, so there is no point extending further. */
+  {id:'sat',      min:0,   max:3,   step:0.01, scale:100,dec:0,unit:'%'},
+  {id:'contrast', min:0.4, max:2,   step:0.01, scale:100,dec:0,unit:'%'},
+  {id:'highlights',min:-1, max:1,   step:0.01, scale:100,dec:0,unit:'%'},
+  {id:'midtones', min:-1,  max:1,   step:0.01, scale:100,dec:0,unit:'%'},
+  {id:'shadows',  min:-1,  max:1,   step:0.01, scale:100,dec:0,unit:'%'},
+  /* Both axes share one scale, and both run past 100%. At 100% the field fills
+     the box the margins leave it; above that it grows past them, so a bleed can
+     be dialled without also moving the margin. */
+  {id:'width',    min:0.12,max:2,   step:0.01, scale:100,dec:0,unit:'%'},
+  {id:'height',   min:0.12,max:2,   step:0.01, scale:100,dec:0,unit:'%'},
+  {id:'offsetX',  min:-0.5, max:0.5, step:0.005,scale:100,dec:0,unit:'%'},
+  {id:'offsetY',  min:-0.5, max:0.5, step:0.005,scale:100,dec:0,unit:'%'},
+  {id:'blur',     min:0.03,max:0.38,step:0.005,scale:100,dec:0,unit:'%'},
+  {id:'erodeDepth', min:0, max:0.40,step:0.005,scale:100,dec:0,unit:'%'},
+  {id:'erodeCount', min:1, max:8,   step:1,    scale:1,  dec:0,unit:''},
+  {id:'erodeSpread',min:0.04,max:0.40,step:0.005,scale:100,dec:0,unit:'%'},
+  {id:'shadowSoft', min:0,   max:1,   step:0.01, scale:100,dec:0,unit:'%'},
+  {id:'drift',    min:0,   max:1,   step:0.01, scale:100,dec:0,unit:'%'},
+  {id:'grain',    min:0,   max:0.3, step:0.005,scale:100,dec:0,unit:'%'},
+  {id:'grainSize',min:1,   max:4,   step:0.05, scale:1,  dec:2,unit:''}
+];
+
+/* ---------- geometry ---------- */
+const R2=Math.SQRT1_2;
+const DIRVEC={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0],
+  upleft:[-R2,-R2],upright:[R2,-R2],downleft:[-R2,R2],downright:[R2,R2]};
+/* The edges a shadow falls on for each light direction — the far side, or for a
+   diagonal the two far sides. */
+const SHADOWAWAY={up:'b',down:'t',left:'r',right:'l',
+  upleft:'br',upright:'bl',downleft:'tr',downright:'tl'};
+function shadowSides(){
+  const v=S.erodeSides||'auto';
+  return v==='auto' ? (SHADOWAWAY[S.dir]||'b') : v;
+}
+/* Shapes stay upright while the light rakes across them: a diagonal resolves to
+   its nearer cardinal wherever something has to be oriented — an arch lit from the
+   top left is still an arch, it is just lit from the corner. Only the light vector
+   itself uses the true diagonal. */
+const DIRAXIS={up:'up',down:'down',left:'left',right:'right',
+  upleft:'up',upright:'up',downleft:'down',downright:'down'};
+const dirAxis=()=>DIRAXIS[S.dir]||'up';
+const dirHoriz=()=>{const a=dirAxis();return a==='left'||a==='right';};
+/* THE FIELD'S OWN DIRECTION.
+   There used to be two directional systems that did not agree. A form's
+   orientation was welded to the light: Drape's hem always hung at the dark end, so
+   moving the light rotated the cloth, and on a diagonal the form snapped to
+   whichever cardinal was nearer. Warp From meanwhile worked in frame terms and
+   ignored the light entirely. Two controls, two coordinate systems, and no way to
+   say "hang the cloth from the top and light it from the side".
+   They are one control now. Field direction anchors the form — Drape hangs from
+   it, Swell bulges toward it, Wave runs along it — and biases the warp to the same
+   edge, so the shape reads as coming from one place. Follow light keeps the old
+   behaviour, where form and light stay locked together. */
+/* mapUnit speaks the light's vocabulary — up, down, left, right — while the chips
+   read Top and Bottom. Returning the chip's own word silently fell through to the
+   default and the form kept following the light, which looked exactly like the
+   control doing nothing. */
+const FIELDAXIS={top:'up',bottom:'down',left:'left',right:'right'};
+const formAxis=()=>{
+  const f=S.fieldDir||'light';
+  return f==='light' ? dirAxis() : (FIELDAXIS[f]||dirAxis());
+};
+const formHoriz=()=>{const a=formAxis();return a==='left'||a==='right';};
+
+function fieldBox(W,H){
+  /* Size and position, which is the only way these four controls are not
+     redundant. Margin and Width both shrank the box symmetrically about its
+     centre — measured, margin 22% and width 74% produced lit areas 716px and
+     675px wide, the same move by two names. Width and Height now set the field's
+     size against the frame; Offset X and Y move it. Anything margin used to do,
+     including bleeding off an edge, is a size over 100% or an offset, and
+     off-centre compositions are reachable now, which they were not. */
+  const wS=clamp(S.width,0.12,2), hS=clamp(S.height==null?0.82:S.height,0.12,2);
+  const w=W*wS, h=H*hS;
+  const ox=clamp(S.offsetX==null?0:S.offsetX,-0.6,0.6)*W;
+  const oy=clamp(S.offsetY==null?0:S.offsetY,-0.6,0.6)*H;
+  /* a small automatic settle toward the light, so the ramp always has room to run
+     without the user having to dial an offset to get it */
+  /* the light vector comes from DIRVEC here, not from the render's tilted axis:
+     fieldBox runs before that exists, and the settle does not need the seed's tilt */
+  const lv=DIRVEC[S.dir]||[0,-1];
+  const st=0.05;
+  let x=W/2-w/2+ox+lv[0]*W*st, y=H/2-h/2+oy+lv[1]*H*st, bw=w, bh=h;
+
+  /* HOLD. A soft form needs blur, and blur carries the field's light outward by
+     roughly its own radius, so raising Blur to get Drape or Dome soft enough pushed
+     light to the frame and the border went with it. The geometry pays for the blur:
+     each edge pulls in by the blur radius, so the border survives whatever the blur
+     is doing. Nothing is drawn to keep it dark — the field stops far enough back
+     that the ground can be seen.
+     An edge already past the frame is left alone. That is what the Bleed control
+     used to say, and it said nothing that Width, Height and Offset did not already
+     say better: a size over 100% runs the field off the frame, and an offset runs
+     it off one side. Bleed was a third way to ask for the same thing. */
+  /* Dome is blurred far harder than the rest, so its hold has to pay for that
+     radius or its own softness would wash the border away. */
+  const R=S.blur*Math.hypot(W,H)/2*(S.form==='dome'?1.8:1);
+  if(x<0){ /* already off the left — leave it */ } else { const d=Math.max(0,R-x); x+=d*0.9; bw-=d*0.9; }
+  if(x+bw>W){ /* already off the right */ } else { const d=Math.max(0,R-(W-(x+bw))); bw-=d*0.9; }
+  if(y<0){ /* already off the top */ } else { const d=Math.max(0,R-y); y+=d*0.9; bh-=d*0.9; }
+  if(y+bh>H){ /* already off the bottom */ } else { const d=Math.max(0,R-(H-(y+bh))); bh-=d*0.9; }
+  return {x, y, w:Math.max(bw,W*0.05), h:Math.max(bh,H*0.05),
+          rx:W/2-w/2+ox+lv[0]*W*st, ry:H/2-h/2+oy+lv[1]*H*st, rw:w, rh:h};
+}
+
+
+
+/* unit space: u across the field, v from the lit end (0) to the dark end (1) */
+function unitOutline(form,ar,rng){
+  /* rng is optional and only Swell uses it — the other outlines are deliberately
+     seed-independent, so Shuffle changes their surface wobble but not their kind. */
+  rng=rng||(()=>0.5);
+  const P=[];
+  const push=(u,v)=>P.push([u,v]);
+  const arc=(cu,cv,ru,rv,a0,a1,n)=>{for(let i=0;i<=n;i++){const a=a0+(a1-a0)*i/n;push(cu+Math.cos(a)*ru,cv+Math.sin(a)*rv);}};
+  const quad=(p0,c,p1,n)=>{for(let i=1;i<=n;i++){const t=i/n,m=1-t;
+    push(m*m*p0[0]+2*m*t*c[0]+t*t*p1[0], m*m*p0[1]+2*m*t*c[1]+t*t*p1[1]);}};
+
+  if(form==='ellipse'){arc(0.5,0.5,0.5,0.5,Math.PI/2,Math.PI/2+Math.PI*2,140);return P;}
+
+  if(form==='arch'){
+    const vs=clamp(0.5*ar,0.12,0.72);
+    push(0,1);push(1,1);push(1,vs);
+    arc(0.5,vs,0.5,vs,0,-Math.PI,70);
+    return P;
+  }
+  if(form==='vault'){
+    const vs=clamp(0.62*ar,0.18,0.82);
+    push(0,1);push(1,1);push(1,vs);
+    quad([1,vs],[1,vs*0.3],[0.5,0],40);
+    quad([0.5,0],[0,vs*0.3],[0,vs],40);
+    return P;
+  }
+  if(form==='portal'){
+    const v=clamp(0.42*ar,0.06,0.28);
+    push(0,1-v);
+    arc(0.5,1-v,0.5,v,Math.PI,0,50);
+    push(1,v);
+    arc(0.5,v,0.5,v,0,-Math.PI,50);
+    return P;
+  }
+  if(form==='lozenge'){
+    const ru=0.16, rv=clamp(0.16*ar,0.03,0.4);
+    push(ru,1);push(1-ru,1);
+    arc(1-ru,1-rv,ru,rv,Math.PI/2,0,18);
+    push(1,rv);
+    arc(1-ru,rv,ru,rv,0,-Math.PI/2,18);
+    push(ru,0);
+    arc(ru,rv,ru,rv,-Math.PI/2,-Math.PI,18);
+    push(0,1-rv);
+    arc(ru,1-rv,ru,rv,Math.PI,Math.PI/2,18);
+    return P;
+  }
+  if(form==='blade'){
+    push(0.22,1);push(0.78,1);push(1,0);push(0,0);
+    return P;
+  }
+  /* --- shapes that carry their own movement --- */
+  if(form==='wave'){
+    /* Both edges share the sway, so the band keeps its width and serpentines
+       rather than pinching. The envelope lands the caps flush with the frame,
+       and the Organic dial drives how far it travels. */
+    const n=110, a=0.045+S.organic*0.10;
+    const off=v=>a*Math.sin(v*Math.PI*2*1.5)*Math.pow(Math.sin(Math.PI*v),1.2);
+    const Lp=[],Rp=[];
+    for(let i=0;i<=n;i++){const v=i/n;const o=off(v);Lp.push([o,v]);Rp.push([1+o,v]);}
+    Lp.forEach(q=>push(q[0],q[1]));
+    for(let i=n;i>=0;i--)push(Rp[i][0],Rp[i][1]);
+    return P;
+  }
+  if(form==='drape'){
+    /* Cloth pinned along the dark edge, hanging between the pins. It used to reach
+       21% of the field at most, with two identical swags — not enough to change
+       the composition, which is the whole point of the form. It now reaches 62%,
+       the number of swags comes from the seed, and neither their widths nor their
+       depths match: one bay hangs to the floor while the next barely dips, which
+       is what real hanging cloth does and what a pair of matched arcs never
+       looks like. */
+    const n=190;
+    /* Deep enough to reach the light. Shaping the far edge is the consistent
+       behaviour, but the far edge is the dark end and a shape there has nothing
+       to show — measured, at the old depth Drape's silhouette was identical to a
+       plain Field. The hem now climbs far enough that its scallops cut into the
+       lit band, which is what Dome does and why Dome always read. */
+    const dep=0.42+S.organic*0.52;
+    /* One continuous curve, not a row of arcs laid end to end. Each bay used to be
+       its own cosine pinned back to the hem line at both ends, so where two bays
+       met the curve returned to the line and set off again — a hard split at every
+       peak instead of a rise and a fall. Summing three harmonics gives the same
+       uneven bays with nothing to butt against: the hem is one function of u across
+       the whole span, so it can only rise and fall smoothly. */
+    /* Detail sets how many bays; Variety decides how far the seed may move that
+       and how uneven they are. At Variety 0 the count is exactly what Detail asks
+       for and the bays match; at full it wanders. The sliders name the form's own
+       parameters rather than a wobble laid over the top. */
+    const det=clamp(S.warpFreq==null?0.35:S.warpFreq,0,1);
+    const vry=clamp(S.warpRand==null?0.6:S.warpRand,0,1);
+    const bays=Math.max(1,Math.round(1+det*4+(rng()-0.5)*2*vry*1.5));
+    const ph1=rng()*Math.PI*2*vry, ph2=rng()*Math.PI*2*vry, ph3=rng()*Math.PI*2*vry;
+    const a2=(0.18+det*0.30)*(1-vry*0.5+rng()*vry), a3=det*0.34*rng()*vry;
+    const tilt=(rng()-0.5)*S.organic*0.22;
+    const nrm=1+a2+a3;
+    const hem=u=>{
+      const f=( (0.5-0.5*Math.cos(u*Math.PI*2*bays+ph1))
+              + a2*(0.5-0.5*Math.cos(u*Math.PI*2*(bays*0.5)+ph2))
+              + a3*(0.5-0.5*Math.cos(u*Math.PI*2*(bays*1.5)+ph3)) )/nrm;
+      return clamp(1-dep*f+tilt*(u-0.5),0.02,1);
+    };
+    /* The hem sits OPPOSITE the anchor, which is the dark end at the default
+       Follow light. Every form works this way — Drape, Swell and Dome all shape the
+       far edge — so the forms behave alike out of the box and Field direction is
+       the one way to move the shaping to the light end. An earlier pass pinned the
+       hem to the anchor instead, which put Drape and Swell on the light end by
+       default and out of step with the rest. */
+    push(0,0);push(1,0);
+    for(let i=n;i>=0;i--){const u=i/n;push(u,hem(u));}
+    return P;
+  }
+  if(form==='dome'){
+    /* A dark dome rising into the light.
+       Named dome, not vault: the full tool's geometric Vault is still in this file
+       and its branch matches first, so a second block under the same key was never
+       reached — which is why three different attempts at the shape all rendered
+       identically. The reference shows the lit mass running
+       across the top and down both sides while the middle is cut back — measured,
+       the light reaches y 0.97 and 0.60 at the edges against 0.22 in the middle.
+       That is not a shape any of the others can make: Swell bulges the light
+       outward, this cuts it back, and the two are not each other reversed because
+       the dome sits on the far edge rather than the near one. */
+    const n=180;
+    /* The dome may climb past the field's own height — at full it reaches 1.35,
+       so its crown leaves the top of the box and only its flanks remain in the
+       picture. That is what makes the light read as wrapping down both sides
+       rather than sitting in a bowl. */
+    /* Amount is the dome's height, Detail its breadth, Variety how far the seed
+       may shift its apex — each slider owns one property of this form. */
+    const det=clamp(S.warpFreq==null?0.35:S.warpFreq,0,1);
+    const vry=clamp(S.warpRand==null?0.6:S.warpRand,0,1);
+    const rise=0.44+S.organic*0.45;
+    /* Broader than the frame, so the dome spans it rather than spiking through
+       the middle: the reference's dark mass is wide and gently curved, and a bell
+       narrower than the picture reads as a finger. The low exponent flattens its
+       top for the same reason. */
+    const wide=1.5+det*1.6+rng()*vry*0.7;
+    const pk=0.5+(rng()-0.5)*vry*0.5;               /* where its apex sits */
+    const lean=(rng()-0.5)*vry*0.6;
+    const dome=u=>{
+      const t=clamp((u-pk)/Math.max(wide,1e-3)+0.5,0,1);
+      /* a low exponent flattens the crown and steepens the flanks, so the dome
+         reads as a mass reaching the sides rather than a hump in the middle */
+      const bell=Math.pow(Math.sin(Math.PI*t),0.30+lean*t*0.3);
+      return clamp(1-rise*bell,0.05,1);
+    };
+    push(0,0);push(1,0);
+    for(let i=n;i>=0;i--){const u=i/n;push(u,dome(u));}
+    return P;
+  }
+  if(form==='swell'){
+    /* Drape's opposite number. Drape hangs its hem at the dark end; this bulges
+       the bright end instead, so the lit part of the field swells toward the light
+       rather than being cut square by it.
+       Built to be lopsided rather than merely off centre. The belly sits wherever
+       the seed puts it, and each shoulder falls at its own rate — a low exponent
+       balloons out fast and flattens, a high one hangs back — so the two sides of
+       the same lobe rarely match. Two out-of-phase harmonics ride on top, weighted
+       by Organic, which puts lumps in the curve instead of leaving a clean bell.
+       Everything here is drawn from the seed, so Shuffle finds a different lobe
+       rather than the same one nudged sideways. */
+    const n=150;
+    const dep=0.44+S.organic*0.42;
+    const pk=0.22+rng()*0.56;                          /* where the belly sits */
+    const eL=0.55+rng()*1.7, eR=0.55+rng()*1.7;        /* each shoulder its own */
+    const w1=rng()*Math.PI*2, w2=rng()*Math.PI*2;
+    /* Low harmonics only. Anything faster than about three cycles is smaller than
+       the field's own blur and gets erased before it reaches the picture, so the
+       wonk has to be built at large scale to survive. */
+    const k1=1+Math.floor(rng()*2), k2=2+Math.floor(rng()*2);
+    /* The strongest lopsidedness comes from the two sides not being the same
+       height at all, rather than from the same lobe leaning. */
+    const dL=0.45+rng()*0.95, dR=0.45+rng()*0.95;
+    const lump=S.organic*(0.34+rng()*0.46);
+    const tilt=(rng()-0.5)*S.organic*0.5;              /* one end higher than the other */
+    const crown=u=>{
+      const side=u<pk;
+      const t=side ? u/Math.max(pk,1e-3) : (1-u)/Math.max(1-pk,1e-3);
+      const e=side?eL:eR;
+      /* sin(pi/2 * t) rather than t: its slope is zero where the two sides meet,
+         so the belly stays round however different the shoulders are. Raising t
+         directly makes them meet at a kink and the lobe comes out peaked. */
+      let b=(side?dL:dR)*(1-Math.pow(Math.sin(Math.PI/2*clamp(t,0,1)),e));
+      b+=lump*(0.62*Math.sin(u*Math.PI*k1+w1)+0.38*Math.sin(u*Math.PI*k2+w2))*Math.sin(Math.PI*u);
+      b+=tilt*(u-0.5);
+      return dep*clamp(b,0,1.35);
+    };
+    /* Swell reaches DOWN into the dark where Dome cuts UP into the light — the two
+       are complements, not the same shape twice. Flipping Swell onto the far edge
+       without inverting its curve made it a second Dome, which is why it stopped
+       reading as its own form. Its boundary now runs deepest in the middle. */
+    push(0,0);push(1,0);
+    for(let i=n;i>=0;i--){const u=i/n;push(u,clamp(0.52+(dep-crown(u))*1.25,0.05,1.35));}
+    return P;
+  }
+  if(form==='plume'){
+    const n=72, narrow=0.32;
+    const half=v=>0.5*(1-(1-narrow)*Math.pow(v,1.4));
+    const Lp=[],Rp=[];
+    for(let i=0;i<=n;i++){const v=i/n;Lp.push([0.5-half(v),v]);Rp.push([0.5+half(v),v]);}
+    Lp.forEach(q=>push(q[0],q[1]));
+    for(let i=n;i>=0;i--)push(Rp[i][0],Rp[i][1]);
+    return P;
+  }
+  if(form==='petal'){
+    const n=80;
+    const half=v=>0.5*Math.pow(Math.sin(Math.PI*v),0.6);
+    const Lp=[],Rp=[];
+    for(let i=0;i<=n;i++){const v=i/n;Lp.push([0.5-half(v),v]);Rp.push([0.5+half(v),v]);}
+    Lp.forEach(q=>push(q[0],q[1]));
+    for(let i=n;i>=0;i--)push(Rp[i][0],Rp[i][1]);
+    return P;
+  }
+  push(0,1);push(1,1);push(1,0);push(0,0);   /* field, column */
+  return P;
+}
+
+function mapUnit(bx,dir){
+  const {x,y,w,h}=bx;
+  if(dir==='up')   return (u,v)=>[x+u*w, y+v*h];
+  if(dir==='down') return (u,v)=>[x+u*w, y+(1-v)*h];
+  if(dir==='left') return (u,v)=>[x+v*w, y+u*h];
+  return               (u,v)=>[x+(1-v)*w, y+u*h];
+}
+
+function resample(pts,N){
+  const n=pts.length, seg=[], cum=[0];
+  for(let i=0;i<n;i++){
+    const a=pts[i], b=pts[(i+1)%n];
+    const L=Math.hypot(b[0]-a[0],b[1]-a[1]);
+    seg.push(L); cum.push(cum[i]+L);
+  }
+  const total=cum[n]||1, out=[];
+  let j=0;
+  for(let i=0;i<N;i++){
+    const d=(i/N)*total;
+    while(j<n-1 && cum[j+1]<d)j++;
+    const t=seg[j]?(d-cum[j])/seg[j]:0;
+    const a=pts[j], b=pts[(j+1)%n];
+    out.push([a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t]);
+  }
+  return out;
+}
+
+/* SHADOW EROSION.
+   The approved gradient is a soft rectangle of light on a dark ground, and the brief
+   is to make that more interesting without making it something else. So nothing new
+   is drawn on top: the rectangle's own edge is bitten into, and because the whole
+   shape is blurred as one, each bite reads as shadow reaching in rather than as a
+   shape laid over.
+   Every mechanism tried before this added a layer — a rim, a vignette, an occluding
+   mass, a cut form. This subtracts from the one shape that was already approved,
+   which is why it stays in family: at rest it IS the approved rectangle, and at full
+   depth it is still recognisably that rectangle with something eating into it.
+   Each bite is a raised cosine along the perimeter, so it has no corners of its own
+   and no edge where it meets the straight part of the side. */
+function erodedOutline(pts,bx,rng){
+  const n=pts.length;
+  const depth=clamp(S.erodeDepth==null?0:S.erodeDepth,0,0.30);
+  if(depth<0.002||n<8)return pts;
+  const count=Math.max(1,Math.round(S.erodeCount==null?3:S.erodeCount));
+  const spread=clamp(S.erodeSpread==null?0.18:S.erodeSpread,0.02,0.40);
+  /* Shadows fall away from the light. With Follow light set, the sides the shadow
+     enters from are derived from the light direction rather than chosen: light from
+     the top puts it along the bottom, light from the right puts it along the left,
+     and a diagonal puts it on the two far edges at once — which is what a raking
+     light actually does to a shape.
+     Naming sides by hand still overrides this. That matters because a shadow the
+     light should not cast is sometimes exactly what a composition wants, and the
+     control should not argue with the person using it. */
+  const sides=shadowSides();
+  /* the frame-relative side each point sits on, from its own outward normal */
+  const cx=bx.x+bx.w/2, cy=bx.y+bx.h/2;
+  const sideOf=i=>{
+    const a=pts[(i+2)%n], b=pts[(i-2+n)%n];
+    let nx=a[1]-b[1], ny=-(a[0]-b[0]);
+    const L=Math.hypot(nx,ny)||1; nx/=L; ny/=L;
+    const p=pts[i];
+    if(nx*(p[0]-cx)+ny*(p[1]-cy)<0){nx=-nx;ny=-ny;}
+    /* how squarely this point faces its own side: 1 along a flat edge, about 0.71
+       at a corner where the normal is diagonal and the side is ambiguous. Bites are
+       tapered out there — displacing a corner tears a notch out of the outline
+       instead of taking a bite out of an edge. */
+    const flat=Math.max(Math.abs(nx),Math.abs(ny));
+    const w=Math.pow(clamp((flat-0.80)/0.20,0,1),1.5);
+    return [Math.abs(nx)>Math.abs(ny) ? (nx>0?'r':'l') : (ny>0?'b':'t'), nx, ny, w];
+  };
+  const meta=[]; for(let i=0;i<n;i++)meta.push(sideOf(i));
+  /* a bite may only be centred well inside a side, never on a corner */
+  const allowed=[]; for(let i=0;i<n;i++) if(sides.indexOf(meta[i][0])>=0 && meta[i][3]>0.55) allowed.push(i);
+  if(!allowed.length)return pts;
+  /* Amorphous, not geometric. A raised cosine on its own gives a shape with one
+     belly and two matching flanks, which reads as a scallop cut by a machine. Real
+     cast shadows are lumpy: their outline wanders on several scales at once, they
+     are fatter on one side than the other, and no two lobes match.
+     Each bite therefore carries its own small set of harmonics riding on the base
+     profile, at frequencies that are not multiples of each other, so the lobe never
+     repeats itself along its own length. */
+  const pf=SHADOWPROFILE[S.shadow]||SHADOWPROFILE.swell;
+  /* Count is literal. It used to be multiplied by a per-preset factor, so asking for
+     three on Swell gave one and the slider disagreed with the picture. The presets
+     differ by the width, depth, lean and lumpiness of each bite — not by how many
+     the slider means. */
+  const nb=Math.max(1,Math.round(count));
+  const bites=[];
+  for(let k=0;k<nb;k++){
+    const at=allowed[Math.floor(rng()*allowed.length)]/n;
+    /* vary is how much this preset lets the seed move each bite off the nominal */
+    const wv=1-pf.vary*0.5+rng()*pf.vary;
+    const dv=1-pf.vary*0.6+rng()*pf.vary*1.2;
+    const lumps=[];
+    const nl=1+Math.floor(rng()*3);
+    for(let q=0;q<nl;q++) lumps.push({f:1.7+q*1.9+rng()*1.3, a:(0.10+rng()*0.30)*pf.lump, ph:rng()*Math.PI*2});
+    bites.push({at, w:clamp(spread*pf.width*wv,0.01,0.48), d:depth*pf.depth*dv,
+                sk:(rng()<0.5?-1:1)*pf.skew, lumps});
+  }
+  const scale=Math.min(bx.w,bx.h);
+  const out=[];
+  for(let i=0;i<n;i++){
+    /* Only points on a chosen side may move. Widths are a fraction of the whole
+       perimeter, so a broad bite would otherwise reach around a corner and eat a
+       side nobody asked for — which is exactly what tore the corners open. */
+    if(sides.indexOf(meta[i][0])<0){out.push(pts[i]);continue;}
+    let d=0;
+    for(const bq of bites){
+      /* signed, so a bite can be steep on one flank and long on the other */
+      let ds=i/n-bq.at; if(ds>0.5)ds-=1; if(ds<-0.5)ds+=1;
+      const lean=1+bq.sk*Math.sign(ds);
+      const x=Math.abs(ds)/(bq.w*lean);
+      if(x<1){
+        let v=Math.pow(0.5+0.5*Math.cos(Math.PI*x),pf.power);
+        /* the lumps ride on the profile and are faded out at its rim, so the bite
+           still meets the straight edge cleanly however lumpy its belly is */
+        let l=0;
+        for(const lm of bq.lumps) l+=lm.a*Math.sin(x*Math.PI*lm.f+lm.ph);
+        v=clamp(v*(1+l*(1-x)),0,1.6);
+        d+=bq.d*v;
+      }
+    }
+    const [,nx,ny,wq]=meta[i];
+    d*=wq;
+    out.push([pts[i][0]-nx*d*scale, pts[i][1]-ny*d*scale]);
+  }
+  return out;
+}
+
+function fieldOutline(bx,amp,rng){
+  const horiz=formHoriz();
+  const uLen=horiz?bx.h:bx.w, vLen=horiz?bx.w:bx.h;
+  const m=mapUnit(bx,formAxis());
+  const raw=unitOutline(S.form,uLen/vLen,rng).map(p=>m(p[0],p[1]));
+  const pts=resample(raw,320);
+  if(amp<0.5)return pts;
+  const wv=waveFn(rng);
+  const cx=bx.x+bx.w/2, cy=bx.y+bx.h/2;
+  const N=pts.length, out=[];
+  for(let i=0;i<N;i++){
+    const a=pts[(i+2)%N], b=pts[(i-2+N)%N];
+    let nx=a[1]-b[1], ny=-(a[0]-b[0]);
+    const L=Math.hypot(nx,ny)||1; nx/=L; ny/=L;
+    const p=pts[i];
+    if(nx*(p[0]-cx)+ny*(p[1]-cy)<0){nx=-nx;ny=-ny;}
+    const d=amp*wv(i/N)*warpLobe(nx,ny)*warpLightComp(nx,ny);
+    out.push([p[0]+nx*d, p[1]+ny*d]);
+  }
+  return out;
+}
+function toPath(pts){
+  let s='M';
+  for(let i=0;i<pts.length;i++)s+=(i?'L':'')+pts[i][0].toFixed(1)+' '+pts[i][1].toFixed(1);
+  return s+'Z';
+}
+
+/* ---------- svg ---------- */
+function blurFilter(id,sd,x,y,w,h,sdy){
+  return `<filter id="${id}" x="${x.toFixed(0)}" y="${y.toFixed(0)}" width="${w.toFixed(0)}" height="${h.toFixed(0)}" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feGaussianBlur stdDeviation="${(sdy==null||Math.abs(sdy-sd)<0.05)?sd.toFixed(1):sd.toFixed(1)+' '+sdy.toFixed(1)}" result="effect1_foregroundBlur"/>
+</filter>`;
+}
+/* How much grain survives at the ends of the tonal range — for the Colored and
+   Shadow tones only. Film grain does not use this: its two passes carry their
+   own opposed ramps, which is what keeps it from compressing the picture. */
+const GRAIN_END=0.55;
+const DITHER_FINE="1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ";
+const DITHER="1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ";
+/* Film grain, built on the same chain Figma emits for a monochrome noise
+   effect: turbulence, luminance to alpha, the dither transfer, clipped to the
+   plate, then flooded with a colour. Keeping to that exact grammar is what lets
+   it survive the paste. The flood colour is the only thing that varies, which is
+   how one chain gives both the dark and the light speckle. */
+function noiseFilterMono(id,W,H,tex,scale,seed,flood){
+  const t=TEXTURES[tex]||TEXTURES.grain;
+  const fx=(t.fx/scale).toFixed(3), fy=(t.fy/scale).toFixed(3);
+  return `<filter id="${id}" x="0" y="0" width="${W}" height="${H}" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feTurbulence type="fractalNoise" baseFrequency="${fx} ${fy}" stitchTiles="stitch" numOctaves="${t.oct}" result="noise" seed="${seed}" />
+<feColorMatrix in="noise" type="luminanceToAlpha" result="alphaNoise" />
+<feComponentTransfer in="alphaNoise" result="coloredNoise1">
+<feFuncA type="discrete" tableValues="${DITHER}"/>
+</feComponentTransfer>
+<feComposite operator="in" in2="shape" in="coloredNoise1" result="noise1Clipped" />
+<feFlood flood-color="${flood}" result="color1Flood" />
+<feComposite operator="in" in2="noise1Clipped" in="color1Flood" result="color1" />
+<feMerge result="effect1_noise">
+<feMergeNode in="shape" />
+<feMergeNode in="color1" />
+</feMerge>
+</filter>`;
+}
+function noiseFilter(id,W,H,tex,scale,seed,style){
+  const t=TEXTURES[tex]||TEXTURES.grain;
+  const fx=(t.fx/scale).toFixed(3), fy=(t.fy/scale).toFixed(3);
+  const head=`<filter id="${id}" x="0" y="0" width="${W}" height="${H}" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feTurbulence type="fractalNoise" baseFrequency="${fx} ${fy}" stitchTiles="stitch" numOctaves="${t.oct}" result="noise" seed="${seed}" />`;
+  if(style==='shadow'||t.mono){
+    return head+`
+<feColorMatrix in="noise" type="luminanceToAlpha" result="alphaNoise" />
+<feComponentTransfer in="alphaNoise" result="coloredNoise1">
+<feFuncA type="discrete" tableValues="${DITHER}"/>
+</feComponentTransfer>
+<feComposite operator="in" in2="shape" in="coloredNoise1" result="noise1Clipped" />
+<feFlood flood-color="rgba(0, 0, 0, 0.25)" result="color1Flood" />
+<feComposite operator="in" in2="noise1Clipped" in="color1Flood" result="color1" />
+<feMerge result="effect1_noise">
+<feMergeNode in="shape" />
+<feMergeNode in="color1" />
+</feMerge>
+</filter>`;
+  }
+  return head+`
+<feComponentTransfer in="noise" result="coloredNoise1">
+<feFuncR type="linear" slope="2" intercept="-0.5" />
+<feFuncG type="linear" slope="2" intercept="-0.5" />
+<feFuncB type="linear" slope="2" intercept="-0.5" />
+<feFuncA type="discrete" tableValues="${DITHER}"/>
+</feComponentTransfer>
+<feComposite operator="in" in2="shape" in="coloredNoise1" result="noise1Clipped" />
+<feMerge result="effect1_noise">
+<feMergeNode in="shape" />
+<feMergeNode in="noise1Clipped" />
+</feMerge>
+</filter>`;
+}
+
+function buildSVG(){
+  const [W,H]=FRAMES[S.frame];
+  const rng=mulberry32((S.seed*2654435761)>>>0);
+  /* Figma names its own filter and gradient ids this way; matching the
+     convention is what lets blur and noise return as live effects on paste */
+  /* THE BLEND GOES ON BOTH THE GROUP AND THE SHAPE.
+     Browsers and Figma disagree about where a blend belongs when the element sits
+     inside a filtered group, and each ignores the other's placement:
+       - a browser honours the blend on the GROUP. Put it on the shape inside and it
+         is dropped: measured, moving it there rendered identically to having no
+         blend at all — luminance +2.30, saturation -5.66, grain +0.318.
+       - Figma's own SVG exports put it on the SHAPE with the filter on the group,
+         so that is what its importer reads.
+     Writing it in both places satisfies both — the browser takes the group's and
+     ignores the shape's, Figma takes the shape's. Verified pixel-identical in the
+     browser against group-only: mean difference 0.036, max 1. */
+  const sfx='_'+(1000+(S.seed*7)%9000)+'_'+(10+(S.seed%80));
+  const bx=fieldBox(W,H);
+  const D=Math.min(W,H);
+  const sd=S.blur*D/2;
+  /* The warp has to out-run the blur or it never reaches the picture. At the old
+     coefficient the default warp displaced about 25px against a 48px blur radius,
+     so most of it was averaged away before it was visible — which is why the
+     amount slider felt weak and the From control looked like it did nothing.
+     Amplitude now scales with the blur it has to survive. */
+  /* The generic wobble is a surface texture, not the shape. It used to carry the
+     same weight as the form's own geometry, so Amount read as "add randomness"
+     rather than "make this form more of itself" — every field looked like the same
+     noise applied to a different outline. It is a third of what it was; the forms
+     put Amount into their own depth instead. */
+  const amp=S.organic*D*(0.085+Math.min(S.blur,0.26)*0.34)*0.34;
+  const defs=[], body=[];
+
+  const base=DIRVEC[S.dir];
+  const tilt=(rng()-0.5)*S.organic*0.5;
+  const ax=base[0]*Math.cos(tilt)-base[1]*Math.sin(tilt);
+  const ay=base[0]*Math.sin(tilt)+base[1]*Math.cos(tilt);
+  const rbx={x:bx.rx==null?bx.x:bx.rx, y:bx.ry==null?bx.y:bx.ry, w:bx.rw==null?bx.w:bx.rw, h:bx.rh==null?bx.h:bx.rh};
+  const cx=rbx.x+rbx.w/2, cy=rbx.y+rbx.h/2;
+  const L=Math.abs(ax)*rbx.w+Math.abs(ay)*rbx.h;
+
+  /* Falloff drives the whole curve: light holds near its source and then drops
+     away steeply, the ground holds its own depth, and the two shoulder stops
+     bend the middle so the ramp stops reading as a linear blend. */
+  const fo=clamp(S.falloff,0,1);
+  /* A floor on the light plateau so highlights never wash out even at 0, and
+     tighter ceilings so a high setting reads as decay rather than as a band. */
+  const hL=0.05+fo*0.20, hG=fo*0.20;
+  const lightStart=clamp(1-hL,Math.min(0.985,S.mid+0.06),0.995);
+  const groundEnd=clamp(hG,0,Math.max(0.005,S.mid-0.06));
+  /* DEPTH (withheld — the control is not listed).
+     The idea is right and the range is not: sinking the ramp's dark end below the
+     ground moved the reference's key measurement from -6.5 to -3.8 where the
+     reference itself is +34.8. The blocker is structural, not a coefficient. In the
+     reference the backdrop showing at the frame edge is #41221B at luminance 40 and
+     the field ramps down to luminance 0. In our palettes the ground is BOTH the
+     backdrop and the ramp's dark end, and it is the darkest colour we have — for the
+     Dining Room, luminance 15. A backdrop that is darker than the field's darkest
+     point can never show as a margin, whatever is drawn over it.
+     Fixing it means changing what the three palette stops mean: the backdrop would
+     become a lifted ground and the ramp would end near black. That changes every
+     output the tool has ever made, so it is not a change to slip in.
+     Original note follows.
+     DEPTH — the ramp's dark end sinks below the ground behind it.
+     This is the whole of the effect the references have and four different overlays
+     failed to reproduce. Measured on the reverse-arch reference: the outer strip of
+     the frame reads +32 on the left and +30 on the right against the picture just
+     inside it, and in the lower half that margin is rgb(60,30,25) — a warm brown,
+     while the middle is (1.6,1.1,1.2). It is not a light at the edge. It is the
+     GROUND, showing behind a field that is inset from it and whose ramp goes darker
+     than the ground does.
+     Our ramp used to end exactly at the ground colour, so the two matched and no
+     margin could ever appear, whatever was drawn on top. With Depth up, the field's
+     dark end sinks toward black and the ground reads as a warm edge wherever the
+     field is inset from the frame — sides only if it bleeds off the bottom, all four
+     if it is inset all round. The concave shadow in the middle is the field's own
+     dark centre against that margin; nothing is added to the picture at all. */
+  const dk=clamp(S.depth==null?0:S.depth,0,1);
+  const [g0r,g0g,g0b]=hexToRgb(col(0));
+  const sunk=rgbToHex(g0r*(1-dk*0.92), g0g*(1-dk*0.92), g0b*(1-dk*0.92));
+  let ramp=`<stop stop-color="${sunk}"/>`;
+  if(hG>0.005)ramp+=`\n<stop offset="${groundEnd.toFixed(3)}" stop-color="${sunk}"/>`;
+  if(true){
+    /* the shoulders bend further as falloff rises — the ground lets go slowly,
+       the light drops away fast once it leaves its plateau */
+    const sh=groundEnd+(S.mid-groundEnd)*0.34;
+    ramp+=`\n<stop offset="${sh.toFixed(3)}" stop-color="${mixHex(col(0),col(1),0.30-fo*0.16)}"/>`;
+  }
+  ramp+=`\n<stop offset="${S.mid}" stop-color="${col(1)}"/>`;
+  if(true){
+    const sh2=S.mid+(lightStart-S.mid)*0.66;
+    ramp+=`\n<stop offset="${sh2.toFixed(3)}" stop-color="${mixHex(col(1),col(2),0.70-fo*0.26)}"/>`;
+  }
+  if(hL>0.005)ramp+=`\n<stop offset="${lightStart.toFixed(3)}" stop-color="${col(2)}"/>`;
+  ramp+=`\n<stop offset="1" stop-color="${col(2)}"/>`;
+  defs.push(`<linearGradient id="paint0_linear${sfx}" gradientUnits="userSpaceOnUse" x1="${(cx-ax*L/2).toFixed(0)}" y1="${(cy-ay*L/2).toFixed(0)}" x2="${(cx+ax*L/2).toFixed(0)}" y2="${(cy+ay*L/2).toFixed(0)}">
+${ramp}
+</linearGradient>`);
+  /* THE EFFECT SIDE IS DRAWN AT A DIFFERENT BLUR FROM THE FRAME-FACING EDGES.
+     A form's character lives on one edge — Drape's hem, Dome's dome, Swell's belly
+     — and at a single global blur that edge is exactly as crisp as the three edges
+     facing the frame, which is not how the references read. A directional blur
+     would be the obvious answer and is not available: asymmetric radii do not
+     survive Figma.
+     So the field is drawn twice from the same outline and the same ramp, and each
+     pass is faded along the light axis so only one of them is present at either
+     end. The soft pass carries about 2.6x the blur and owns the dark end; the
+     crisp pass keeps its old radius and owns the light end. Offset 0 of the ramp
+     is the dark end, so the envelopes run in opposite directions from there. */
+  const envelope=(src,fn)=>src.replace(/<stop([^>]*)\/>/g,(m0,at)=>{
+    const om=at.match(/offset="([0-9.]+)"/);
+    const o=om?parseFloat(om[1]):0;
+    return `<stop${at} stop-opacity="${fn(o).toFixed(3)}"/>`;
+  });
+  const gcoords=`gradientUnits="userSpaceOnUse" x1="${(cx-ax*L/2).toFixed(0)}" y1="${(cy-ay*L/2).toFixed(0)}" x2="${(cx+ax*L/2).toFixed(0)}" y2="${(cy+ay*L/2).toFixed(0)}"`;
+  /* Which end is the effect side depends on the form, and getting this backwards
+     softens the plain edge and leaves the shaped one crisp. Drape's hem and Swell's
+     belly sit on the anchor edge, which is the light end of the ramp; Dome's dome
+     rises from the far edge, which is the dark end. Wave undulates down both sides
+     and takes the dark end, where its ramp has the most room to show it. */
+  /* every form shapes the far edge now, so the soft pass always belongs to the
+     dark end of the ramp — there is no per-form exception left to keep */
+  const atLight=false;
+  const cf=o=>clamp((o-0.10)/0.34,0,1);
+  const crossFade=o=>atLight?1-cf(1-o):cf(o);
+  defs.push(`<linearGradient id="paint0_hard${sfx}" ${gcoords}>
+${envelope(ramp,crossFade)}
+</linearGradient>`);
+  defs.push(`<linearGradient id="paint0_soft${sfx}" ${gcoords}>
+${envelope(ramp,o=>1-crossFade(o))}
+</linearGradient>`);
+
+  /* shared id counters so composed masses never collide with the field or the noise */
+  let fi=2, gi=1;
+  /* Shadow depth. A very large, very soft mass of a slightly lifted, hue-shifted
+     ground, weighted away from the light. It sits at a few percent of luminance
+     difference — below the threshold you would consciously notice — so that the
+     dark reads as volume rather than as an empty fill. Deliberately has no
+     control: anything calibrated to be imperceptible stops working the moment
+     it can be pushed. */
+  /* Drift stretches the blur across the light axis, so the softness reads as
+     travel rather than as distance. Direction comes from Light from — no extra
+     control for it. */
+  /* Motion is built from geometry, not from an anisotropic blur radius. Every
+     blur here stays a single symmetric value and every shape is emitted with its
+     coordinates already baked in — no transform attributes, no nested groups —
+     because those are the two things an importer is most likely to drop. */
+  const motion=S.drift>0.01;
+  const lightIsHoriz=dirHoriz();
+  const smearHoriz=(S.driftDir==='across')?!lightIsHoriz:lightIsHoriz;
+  const reach=D*0.42*S.drift;
+  let COPIES=[{sc:1,tx:0,ty:0,op:1}];
+  if(motion){
+    COPIES=[];
+    if(S.driftDir==='spin'){
+      /* rotational blur: the shape is sampled through a small arc about the
+         frame centre, so everything smears on a curve rather than outward */
+      const n=9+Math.round(S.drift*9), sweep=S.drift*30;
+      for(let k=0;k<n;k++){
+        const t=n>1?(k/(n-1))*2-1:0;
+        COPIES.push({sc:1,tx:0,ty:0,rot:t*sweep/2,
+                     op:Math.abs(t)<1e-6?1:0.32+0.44*(1-Math.abs(t))});
+      }
+    }else{
+      const n=9+Math.round(S.drift*8);
+      for(let k=0;k<n;k++){
+        const t=n>1?(k/(n-1))*2-1:0, off=t*reach;
+        COPIES.push({sc:1,tx:smearHoriz?off:0,ty:smearHoriz?0:off,
+                     op:Math.abs(t)<1e-6?1:0.34+0.42*(1-Math.abs(t))});
+      }
+    }
+  }
+  const ORDER=COPIES.slice().sort((a,b)=>a.op-b.op);   /* faintest first */
+  /* Motion copies must AVERAGE, not stack. Painted source-over at their own
+     weights, fifteen copies of the same shape reach full alpha wherever they
+     overlap, so a trail came out as a solid slab — and any edge running along the
+     direction of travel is drawn by every copy at once, which turned the field's
+     bottom edge into a hard seam.
+     Compositing each copy at w / (running sum of w) makes the result the weighted
+     mean of them all, which is what a motion blur is. The first copy lands at full
+     alpha and each later one contributes proportionally less. */
+  {
+    let cum=0;
+    for(const cp of ORDER){ cum+=cp.op; cp.aop=cp.op/cum; }
+  }
+  const motionPad=motion?(S.driftDir==='spin'?Math.hypot(W,H)/2*Math.sin(S.drift*34*Math.PI/360)*1.25:reach):0;
+
+  const bake=(pts,cp,ox,oy)=>{
+    const a=(cp.rot||0)*Math.PI/180, ca=Math.cos(a), sa=Math.sin(a);
+    return pts.map(q=>{
+      const dx=(q[0]-ox)*cp.sc, dy=(q[1]-oy)*cp.sc;
+      return [ox+dx*ca-dy*sa+cp.tx, oy+dx*sa+dy*ca+cp.ty];
+    });
+  };
+  const rotPts=(pts,deg,ox,oy)=>{
+    const a=deg*Math.PI/180, ca=Math.cos(a), sa=Math.sin(a);
+    return pts.map(q=>{const dx=q[0]-ox,dy=q[1]-oy;return [ox+dx*ca-dy*sa, oy+dx*sa+dy*ca];});
+  };
+  const quadPath=pts=>'M'+pts.map(q=>q[0].toFixed(1)+' '+q[1].toFixed(1)).join('L')+'Z';
+  /* A band with square ends stops dead wherever it stops — and because the field
+     keeps a margin the band does not, those ends print against bare ground and
+     the frame edge reads as a row of blocks. Tapering the thickness to nothing at
+     both ends lets a streak run off the frame without ever showing where it
+     began. Real motion streaks taper anyway. */
+  const taperEdge=0.22;
+  const taperAt=u=>{
+    const t=Math.min(u,1-u)/taperEdge;
+    return t>=1?1:t*t*(3-2*t);
+  };
+  /* a streak as a spindle: sampled along its length, half-thickness scaled by the
+     taper, out along one side and back along the other */
+  const spindle=(x0,y0,x1,y1,halfA,halfB,seg)=>{
+    const dx=x1-x0, dy=y1-y0, L3=Math.hypot(dx,dy)||1;
+    const nx=-dy/L3, ny=dx/L3, top=[], bot=[];
+    for(let i=0;i<=seg;i++){
+      const u=i/seg, k=taperAt(u);
+      const hw=(halfA+(halfB-halfA)*u)*k;
+      const px2=x0+dx*u, py2=y0+dy*u;
+      top.push([px2+nx*hw, py2+ny*hw]);
+      bot.push([px2-nx*hw, py2-ny*hw]);
+    }
+    return top.concat(bot.reverse());
+  };
+  const addBlur=(sdv,x,y,w,h)=>{
+    const id='filter'+(fi++)+'_f'+sfx, pd=sdv*3;
+    defs.push(blurFilter(id,sdv,x-pd,y-pd,w+2*pd,h+2*pd));
+    return id;
+  };
+  const addRadial=(rx,ry,r,stops)=>{
+    const id='paint'+(gi++)+'_radial'+sfx;
+    defs.push(`<radialGradient id="${id}" gradientUnits="userSpaceOnUse" cx="${rx.toFixed(0)}" cy="${ry.toFixed(0)}" r="${Math.max(1,r).toFixed(0)}">${stops}</radialGradient>`);
+    return id;
+  };
+  const addLinear=(x1,y1,x2,y2,stops)=>{
+    const id='paint'+(gi++)+'_linear'+sfx;
+    defs.push(`<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${x1.toFixed(0)}" y1="${y1.toFixed(0)}" x2="${x2.toFixed(0)}" y2="${y2.toFixed(0)}">${stops}</linearGradient>`);
+    return id;
+  };
+  const blob=(bcx,bcy,r,stops,sdv,op,moving)=>{
+    const pad=moving?motionPad:0;
+    const fid=addBlur(sdv,bcx-r-pad,bcy-r-pad,2*(r+pad),2*(r+pad));
+    for(const cp of (moving?ORDER:[{sc:1,tx:0,ty:0,op:1}])){
+      const [[nx,ny]]=bake([[bcx,bcy]],cp,cx,cy), nr=r*cp.sc;
+      const gid=addRadial(nx,ny,nr,stops);
+      const o=op*(moving?cp.aop:cp.op);
+      body.push(`<g filter="url(#${fid})"${o<0.999?` opacity="${o.toFixed(3)}"`:''}>\n<circle cx="${nx.toFixed(0)}" cy="${ny.toFixed(0)}" r="${nr.toFixed(0)}" fill="url(#${gid})"/>\n</g>`);
+    }
+  };
+
+  (function shadowDepth(){
+    const tone=shadowTone();
+    /* pushed well off to one side and only about half the frame across, so its
+       falloff happens inside the visible dark rather than lifting all of it */
+    const jit=(rng()-0.5)*0.5*(0.5+S.organic);
+    const scx=W/2-ax*W*0.34+(-ay)*W*(0.30+jit);
+    const scy=H/2-ay*H*0.34+(ax)*H*(0.30+jit);
+    const r=Math.max(W,H)*(0.46+rng()*0.16);
+    blob(scx,scy,r,
+      `<stop stop-color="${tone}"/>
+<stop offset="0.42" stop-color="${tone}" stop-opacity="0.75"/>
+<stop offset="1" stop-color="${tone}" stop-opacity="0"/>`, sd*1.5, 1);
+  })();
+
+  if(S.form==='orb'){
+    /* A lamp in the dark rather than a wash. The old orb was a mass larger than
+       the frame with a slow falloff: measured against the reference it sat at 115
+       where the reference was at 40, three quarters of the way out, so the whole
+       picture read as lit and nothing was left for the dark to do.
+       The reference profile is a dense core, a wide coloured halo, and a fall to
+       near-black inside the frame — luminance 154, 140, 112, 73, 40, 25 at
+       increasing radius, with chroma *rising* outward from 43% to 54% because the
+       core is close to white and the halo is where the colour lives. So: a smaller
+       radius, a core held flat before it drops, the middle stop given the widest
+       band of the three, and the ground reached before the corner. */
+    const off=0.10+rng()*0.16;
+    const ocx=W/2+ax*W*off*(1+S.organic), ocy=H/2+ay*H*off*(1+S.organic);
+    const r=Math.max(W,H)*(0.40+rng()*0.16)*clamp(S.width,0.4,1.4);
+    const core=clamp(0.05+hL*0.34,0.04,0.22);          /* dense, and small */
+    const halo=clamp(core+0.30,0.28,0.55);             /* where the colour lives */
+    blob(ocx,ocy,r,
+      `<stop stop-color="${col(2)}"/>
+<stop offset="${core.toFixed(3)}" stop-color="${col(2)}"/>
+<stop offset="${(core+(halo-core)*0.45).toFixed(3)}" stop-color="${mixHex(col(2),col(1),0.62)}"/>
+<stop offset="${halo.toFixed(3)}" stop-color="${col(1)}"/>
+<stop offset="${clamp(halo+0.26,0.5,0.86).toFixed(3)}" stop-color="${mixHex(col(1),col(0),0.62)}"/>
+<stop offset="1" stop-color="${col(0)}"/>`, sd, 1, true);
+  }
+  else if(S.form==='mesh'){
+    /* One light mass leads, the rest are mid and ground so the field keeps its
+       depth — an even mix of all three stops just floods the frame pale. */
+    const n=3+Math.round(S.organic*3);
+    for(let i=0;i<n;i++){
+      const isLead=(i===0);
+      const roll=rng();
+      const ci=isLead?2:(roll<0.46?1:(roll<0.80?0:2));
+      const c=col(ci);
+      const across=(rng()-0.5)*1.15*(0.55+S.organic*0.8);
+      const bias=(0.06+rng()*0.46)*(isLead?1:(i%2?0.8:-0.7));
+      const bcx=W/2+ax*W*bias+(-ay)*W*across;
+      const bcy=H/2+ay*H*bias+(ax)*H*across;
+      const r=D*(0.22+rng()*0.28)*(0.85+S.organic*0.4);
+      const peak=isLead?0.92:(ci===2?0.6:0.8);
+      blob(bcx,bcy,r,
+        `<stop stop-color="${c}" stop-opacity="${peak.toFixed(2)}"/>
+<stop offset="0.40" stop-color="${c}" stop-opacity="${(peak*0.68).toFixed(2)}"/>
+<stop offset="1" stop-color="${c}" stop-opacity="0"/>`, sd*1.1, isLead?0.95:(0.55+rng()*0.3));
+    }
+  }
+  else {
+    const pad=sd*3+motionPad;
+    defs.push(blurFilter('filter0_f'+sfx,sd,bx.x-pad-amp,bx.y-pad-amp,bx.w+2*(pad+amp),bx.h+2*(pad+amp)));
+    if(!motion && amp<0.5 && S.form==='field'){
+      body.push(`<g filter="url(#filter0_f${sfx})">\n<rect x="${bx.x.toFixed(0)}" y="${bx.y.toFixed(0)}" width="${bx.w.toFixed(0)}" height="${bx.h.toFixed(0)}" fill="url(#paint0_linear${sfx})"/>\n</g>`);
+    }else{
+      const pts=fieldOutline(bx,amp,rng);
+      /* Dome carries more again: its whole character is a soft mass rising into
+         the light, and at the shared multiplier its crown still read as an edge. */
+      /* Dome is drawn ONCE, softly. The two-pass trick keys its crossfade to
+         position along the ramp, which works while a form's shaping stays at the
+         dark end — but Dome's crown climbs into the light end, where the crisp pass
+         owns the picture and drew the crown as a hard edge. Measured, the crown's
+         transition was 46% of the frame against the reference's 67%. A shape that
+         intrudes into the light cannot be feathered by a ramp-keyed crossfade, so
+         Dome skips the crisp pass and takes the soft radius everywhere. */
+      const soloSoft=(S.form==='dome');
+      /* 4.5x, not 9.5x. A crown-transition metric keeps rewarding more blur right
+         up to the point where there is no picture left — at 9.5x it read 65% against
+         the reference's 67% while the frame was an even smudge. The metric measures
+         softness, not whether anything survives it. */
+      const softSd=sd*(soloSoft?3.2:2.6)+D*(soloSoft?0.016:0.010);
+      const softPad=softSd*3+motionPad;
+      defs.push(blurFilter('filter0_s'+sfx,softSd,bx.x-softPad-amp,bx.y-softPad-amp,bx.w+2*(softPad+amp),bx.h+2*(softPad+amp)));
+      for(const cp of ORDER){
+        const o=motion?cp.aop:cp.op;
+        const d0=toPath(bake(pts,cp,cx,cy));
+        if(soloSoft){
+          body.push(`<g filter="url(#filter0_s${sfx})"${o<0.999?` opacity="${o.toFixed(3)}"`:''}>\n<path d="${d0}" fill="url(#paint0_linear${sfx})"/>\n</g>`);
+        }else{
+          body.push(`<g filter="url(#filter0_s${sfx})"${o<0.999?` opacity="${o.toFixed(3)}"`:''}>\n<path d="${d0}" fill="url(#paint0_soft${sfx})"/>\n</g>`);
+          body.push(`<g filter="url(#filter0_f${sfx})"${o<0.999?` opacity="${o.toFixed(3)}"`:''}>\n<path d="${d0}" fill="url(#paint0_hard${sfx})"/>\n</g>`);
+        }
+      }
+    }
+
+    if(S.form==='smear'){
+      /* thin bands laid across the light axis and rotated a few degrees, so the
+         blur reads as travel rather than as softness */
+      const n=3+Math.round(S.organic*3.5);
+      const alongX=Math.abs(ax)>Math.abs(ay);
+      for(let i=0;i<n;i++){
+        const t=(i+0.3+rng()*0.4)/n;
+        const c=t>0.62?col(2):(t>0.3?col(1):col(0));
+        const thick=D*(0.07+rng()*0.16)*(0.7+S.organic*0.7);
+        const px=cx-ax*L/2+ax*L*t, py=cy-ay*L/2+ay*L*t;
+        /* run long enough that the taper falls outside the frame entirely */
+        const ext=2.8;
+        const x=alongX?px-thick/2:-W*(ext-1)/2, y=alongX?-H*(ext-1)/2:py-thick/2;
+        const w=alongX?thick:W*ext, h=alongX?H*ext:thick;
+        const deg=(rng()-0.5)*2*(2+S.organic*9);
+        const mx2=x+w/2, my2=y+h/2;
+        /* run the spindle along the band's length; thickness is its cross-axis */
+        const ends=alongX?[[mx2,y],[mx2,y+h]]:[[x,my2],[x+w,my2]];
+        const half=alongX?w/2:h/2;
+        const corners=rotPts(spindle(ends[0][0],ends[0][1],ends[1][0],ends[1][1],half,half,44),deg,mx2,my2);
+        const ge=rotPts(alongX?[[x,my2],[x+w,my2]]:[[mx2,y],[mx2,y+h]],deg,mx2,my2);
+        const gid=addLinear(ge[0][0],ge[0][1],ge[1][0],ge[1][1],
+          `<stop stop-color="${c}" stop-opacity="0"/><stop offset="0.5" stop-color="${c}"/><stop offset="1" stop-color="${c}" stop-opacity="0"/>`);
+        const fid=addBlur(Math.max(sd*0.62,thick*0.40),-W*0.9,-H*0.9,W*2.8,H*2.8);
+        body.push(`<g filter="url(#${fid})" opacity="${(0.42+rng()*0.4).toFixed(2)}">\n<path d="${quadPath(corners)}" fill="url(#${gid})"/>\n</g>`);
+      }
+    }
+
+
+    /* SLAT — shadow thrown by something with structure. Every other field lays
+       light down; these are bands of dark raked across the whole frame, the way a
+       screen or a blind interrupts a room. They are multiplied in the ground
+       colour so they occlude rather than tint, they run past the field's own edges
+       so they read as cast onto the picture rather than belonging to it, and their
+       widths and gaps are uneven so the set never looks printed. */
+    if(S.form==='slat'){
+      const n=4+Math.round(rng()*3+S.organic*4);
+      const alongX=Math.abs(ax)>Math.abs(ay);
+      const sfid=addBlur(Math.max(sd*0.55,Math.min(W,H)*0.006),-W*0.9,-H*0.9,W*2.8,H*2.8);
+      const [gr,gg,gb]=hexToRgb(col(0));
+      const [gh,gs]=rgbToHsl(gr,gg,gb);
+      const [SR,SG,SB]=hslToRgb(gh,clamp(gs*0.75,0,1),0.09);
+      const tone=rgbToHex(SR,SG,SB);
+      const span=alongX?W:H;
+      let cursor=-span*0.12;
+      for(let i=0;i<n && cursor<span*1.12;i++){
+        const thick=span*(0.035+rng()*0.075)*(0.75+S.organic*0.7);
+        const gap=span*(0.045+rng()*0.085);
+        const p0=cursor, p1=cursor+thick;
+        cursor=p1+gap;
+        const deg=(rng()-0.5)*S.organic*7;
+        const ext=2.6;
+        const x=alongX?p0:-W*(ext-1)/2, y=alongX?-H*(ext-1)/2:p0;
+        const w2=alongX?thick:W*ext, h2=alongX?H*ext:thick;
+        const mx=x+w2/2, my=y+h2/2;
+        const corners=rotPts([[x,y],[x+w2,y],[x+w2,y+h2],[x,y+h2]],deg,mx,my);
+        const e0=rotPts(alongX?[[x,my],[x+w2,my]]:[[mx,y],[mx,y+h2]],deg,mx,my);
+        const gid=addLinear(e0[0][0],e0[0][1],e0[1][0],e0[1][1],
+          `<stop stop-color="${tone}" stop-opacity="0"/><stop offset="0.5" stop-color="${tone}" stop-opacity="${(0.45+rng()*0.4).toFixed(2)}"/><stop offset="1" stop-color="${tone}" stop-opacity="0"/>`);
+        body.push(`<g filter="url(#${sfid})" style="mix-blend-mode:multiply">\n<path d="${quadPath(corners)}" style="mix-blend-mode:multiply" fill="url(#${gid})"/>\n</g>`);
+      }
+    }
+
+    /* RIFT — one large shadow with an edge to it. A single mass entering from a
+       corner and cutting the frame on a slow diagonal, so the composition divides
+       into a lit part and a dark part rather than fading evenly. The dividing edge
+       carries the same wobble the organic fields use, which is what keeps it from
+       looking like a shape pasted on top. */
+    if(S.form==='rift'){
+      const rfid=addBlur(Math.max(sd*0.85,Math.min(W,H)*0.012),-W*0.9,-H*0.9,W*2.8,H*2.8);
+      const [gr,gg,gb]=hexToRgb(col(0));
+      const [gh,gs]=rgbToHsl(gr,gg,gb);
+      const [SR,SG,SB]=hslToRgb(gh,clamp(gs*0.75,0,1),0.08);
+      const tone=rgbToHex(SR,SG,SB);
+      const n=1+(rng()<0.35?1:0);
+      for(let i=0;i<n;i++){
+        /* A shadow only reads where there is light to take away. Placed out in the
+           dark end this cut nothing — measured, it was darkening the ground at four
+           times the rate it touched the lit band, which is invisible. It now sits
+           across the middle of the ramp so its leading edge crosses the light. */
+        const perp=[-ay,ax];
+        const off=(i===0?-1:1)*(0.06+rng()*0.20)+(rng()-0.5)*0.10;
+        const lead=(i===0?0.10:0.34)+rng()*0.16;
+        const cxr=cx+ax*L*lead+perp[0]*off*D;
+        const cyr=cy+ay*L*lead+perp[1]*off*D;
+        const deg=(Math.atan2(perp[1],perp[0])*180/Math.PI)+(rng()-0.5)*(26+S.organic*34);
+        const wob=waveFn(rng);
+        const half=D*1.4, depth=D*(0.42+rng()*0.55);
+        const seg=72, front=[], backp=[];
+        for(let q=0;q<=seg;q++){
+          const u=q/seg, t2=(u-0.5)*2*half;
+          const bend=S.organic*D*0.11*wob(u)+Math.pow(Math.abs(u-0.5)*2,2)*D*0.06;
+          front.push([t2, bend]);
+          backp.push([t2, bend+depth]);
+        }
+        const pts=rotPts(front.concat(backp.reverse()).map(q=>[q[0]+cxr,q[1]+cyr]),deg,cxr,cyr);
+        const ge=rotPts([[cxr,cyr],[cxr,cyr+depth]],deg,cxr,cyr);
+        const gid=addLinear(ge[0][0],ge[0][1],ge[1][0],ge[1][1],
+          `<stop stop-color="${tone}" stop-opacity="0"/><stop offset="0.22" stop-color="${tone}" stop-opacity="${(0.68+rng()*0.3).toFixed(2)}"/><stop offset="0.72" stop-color="${tone}" stop-opacity="${(0.30+rng()*0.24).toFixed(2)}"/><stop offset="1" stop-color="${tone}" stop-opacity="0"/>`);
+        body.push(`<g filter="url(#${rfid})" style="mix-blend-mode:multiply">\n<path d="${quadPath(pts)}" style="mix-blend-mode:multiply" fill="url(#${gid})"/>\n</g>`);
+      }
+    }
+
+    if(S.form==='halo'){
+      /* Concentric rings around the light, each one fainter and further out —
+         the way a lamp reads through mist. */
+      const n=3+Math.round(rng()*2+S.organic*2);
+      const hx=cx+ax*L*0.20+(rng()-0.5)*W*0.16;
+      const hy=cy+ay*L*0.20+(rng()-0.5)*H*0.16;
+      for(let i=0;i<n;i++){
+        const t=(i+1)/(n+0.4);
+        const r=D*(0.10+t*0.62)*(0.85+rng()*0.3);
+        const thick=D*(0.03+rng()*0.07)*(0.7+S.organic*0.8);
+        const c2=col(i===0?2:(i<n-1?1:0));
+        const seg=90, outer=[], innerp=[];
+        const wob=waveFn(rng);
+        for(let k=0;k<=seg;k++){
+          const u=k/seg, a=u*Math.PI*2;
+          const kk=1+S.organic*0.16*wob(u);
+          outer.push([hx+Math.cos(a)*(r+thick/2)*kk, hy+Math.sin(a)*(r+thick/2)*kk*0.92]);
+          innerp.push([hx+Math.cos(a)*(r-thick/2)*kk, hy+Math.sin(a)*(r-thick/2)*kk*0.92]);
+        }
+        const pts=outer.concat(innerp.reverse());
+        const gid=addRadial(hx,hy,r+thick,
+          `<stop stop-color="${c2}" stop-opacity="0"/><stop offset="${clamp((r-thick)/(r+thick),0,0.95).toFixed(3)}" stop-color="${c2}"/><stop offset="1" stop-color="${c2}" stop-opacity="0"/>`);
+        const fid2=addBlur(Math.max(sd*0.82,thick*0.55),-W*0.9,-H*0.9,W*2.8,H*2.8);
+        body.push(`<g filter="url(#${fid2})" opacity="${((0.5-t*0.22)*(0.7+rng()*0.5)).toFixed(2)}">\n<path d="${quadPath(pts)}" fill="url(#${gid})"/>\n</g>`);
+      }
+    }
+
+    if(S.form==='reed'){
+      /* Upright strokes of uneven height rising out of the dark end, tapering as
+         they go — closer to brushwork than to any of the geometric fields. */
+      const n=5+Math.round(rng()*4+S.organic*5);
+      const horiz=dirHoriz();
+      for(let i=0;i<n;i++){
+        const t=(i+0.5)/n+(rng()-0.5)*(0.55/n);
+        const ci=rng()<0.6?2:(rng()<0.6?1:0);
+        const c2=col(ci);
+        const len=(horiz?bx.w:bx.h)*(0.45+rng()*0.62);
+        const wid=D*(0.028+rng()*0.075)*(0.7+S.organic*0.6);
+        const posA=horiz?bx.y+bx.h*t:bx.x+bx.w*t;
+        const ax1=dirAxis();
+        const rootB=horiz?(ax1==='left'?bx.x+bx.w:bx.x):(ax1==='up'?bx.y+bx.h:bx.y);
+        const dirS=horiz?(ax1==='left'?-1:1):(ax1==='up'?-1:1);
+        const x0=horiz?rootB:posA, y0=horiz?posA:rootB;
+        const x1=horiz?rootB+dirS*len:posA+(rng()-0.5)*D*0.05;
+        const y1=horiz?posA+(rng()-0.5)*D*0.05:rootB+dirS*len;
+        const pts=spindle(x0,y0,x1,y1,wid/2,wid/2*0.25,52);
+        const gid=addLinear(x0,y0,x1,y1,
+          `<stop stop-color="${c2}" stop-opacity="0.15"/><stop offset="0.45" stop-color="${c2}"/><stop offset="1" stop-color="${c2}" stop-opacity="0"/>`);
+        const fid2=addBlur(Math.max(sd*0.80,wid*0.55),-W*0.9,-H*0.9,W*2.8,H*2.8);
+        body.push(`<g filter="url(#${fid2})" opacity="${(0.34+rng()*0.4).toFixed(2)}">\n<path d="${quadPath(pts)}" fill="url(#${gid})"/>\n</g>`);
+      }
+    }
+
+  }
+
+
+  /* Rim and Shade sit outside the form branch so they apply to Orb and Mesh as
+     well as everything else — they describe the light in the room, not the shape
+     of the field. */
+  /* THE SHADOW IS ITS OWN OBJECT.
+     It used to be cut out of the field's outline, which had two faults. The field's
+     blur is the only softness available that way, so a shadow could never be softer
+     than the edge it ate into — and reshaping the outline moved light as well as
+     removing it: measured, every preset ADDED up to 6 levels of light somewhere in
+     the frame, where the eroded edge fell outside the original rectangle.
+     Now the field is drawn as the approved rectangle, untouched, and the shadow is
+     the region between that rectangle and the eroded outline — filled with the
+     ground, blurred on its own terms, and MULTIPLIED. A multiply can only ever
+     darken, so the second fault cannot recur by construction. */
+  if((S.erodeDepth||0)>0.002 && S.form==='field'){
+    /* The shadow gets its own random stream and its own copy of the box.
+       It used to draw from the shared stream, which every other feature also draws
+       from, so changing Blur or Middle point re-rolled the bites and the shadow
+       jumped — measured, unrelated settings moved its footprint by up to 5%. And it
+       was built on the held box, which shrinks with Blur, so raising Blur slid the
+       shadow as well as softening it. It now uses the box the user asked for and a
+       stream seeded from Seed alone: only Seed, Shuffle and the shadow's own
+       controls can move it. */
+    const srng=mulberry32(((S.seed|0)*7919+13)>>>0);
+    const sbx={x:bx.rx==null?bx.x:bx.rx, y:bx.ry==null?bx.y:bx.ry,
+               w:bx.rw==null?bx.w:bx.rw, h:bx.rh==null?bx.h:bx.rh};
+    const rectPts=resample(unitOutline('field',1,srng).map(p=>mapUnit(sbx,formAxis())(p[0],p[1])),320);
+    const inner=erodedOutline(rectPts,sbx,srng);
+    const soft=clamp(S.shadowSoft==null?0.5:S.shadowSoft,0,1);
+    /* Floored well above the field's own blur, so the shadow is softer than the
+       edge it lies against whatever Blur is set to — at the default that is
+       about four times the field's radius. */
+    const ssd=Math.max(sd*2.2, D*(0.035+soft*0.095));
+    const sfid=addBlur(ssd,-W*0.9,-H*0.9,W*2.8,H*2.8);
+    const [gr,gg,gb]=hexToRgb(col(0));
+    /* The palette's own darkest value, not a darkened version of it and not black.
+       A shadow in this tool should never introduce a colour the palette does not
+       already contain — the deepest it can go is the ground. */
+    const tone=col(0);
+    /* outer ring then inner ring reversed, filled even-odd: exactly the bites */
+    const d0=toPath(rectPts)+toPath(inner.slice().reverse());
+    /* Blended with DARKEN, which takes the lower of the two values per channel.
+       Two constraints have to hold at once and only this satisfies both:
+       - multiply made the shadow invent a black the palette does not contain, since
+         ground multiplied by ground is ground squared: rgb(6,2,3) against a ground
+         of rgb(26,12,18);
+       - painting it plainly bottomed out at the ground correctly, but LIGHTENED the
+         few places already darker than the ground — the depth blob puts them there —
+         by up to 2.5 levels.
+       Darken cannot go above what is underneath, so it never adds light, and cannot
+       go below the tone it is given, so the palette's ground is the deepest it
+       reaches. */
+    body.push(`<g filter="url(#${sfid})" style="mix-blend-mode:darken">\n<path d="${d0}" fill-rule="evenodd" style="mix-blend-mode:darken" fill="${tone}"/>\n</g>`);
+  }
+
+  let grain='';
+  if(S.grain>0.002){
+    /* Texture belongs to the midtones. The plate carries a ramp rather than a
+       flat fill and the filter clips the noise to it, so grain eases off at both
+       ends of the tonal range — it neither veils the highlight nor lifts the
+       shadow. */
+    /* Grain was compressing the picture: multiply takes the most absolute
+       luminance out of the brightest pixels, screen puts the most back into the
+       darkest, so together they squeezed both ends toward the middle. Each pass
+       is now weighted against the tone it damages — the darkening speckle is
+       strongest where the picture is already dark and fades out of the
+       highlights, the lightening speckle does the reverse. The perturbation
+       comes out roughly constant across the frame, which is what film does. */
+    const gramp=(id,pc,aDark,aLight)=>{
+      defs.push(`<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${(cx-ax*L/2).toFixed(0)}" y1="${(cy-ay*L/2).toFixed(0)}" x2="${(cx+ax*L/2).toFixed(0)}" y2="${(cy+ay*L/2).toFixed(0)}">
+<stop stop-color="${pc}" stop-opacity="${aDark}"/>
+<stop offset="1" stop-color="${pc}" stop-opacity="${aLight}"/>
+</linearGradient>`);
+      return id;
+    };
+    const gain=(TEXTURES[S.texture]||TEXTURES.grain).nGain||1.5;
+    if(S.grainStyle==='neutral'){
+      /* Film grain is two passes of the same monochrome chain, one darkening and
+         one lightening, on different turbulence seeds so the speckle interleaves
+         instead of cancelling. Two passes are what make it read as grain rather
+         than as dirt — a single direction only ever soils the image.
+         Each plate is the identity colour for its own blend — white under
+         multiply, black under screen — so the plate itself is invisible and only
+         the flood registers. */
+      /* The blend mode goes on the group, not the rect. Figma writes it on the
+         rect and applies it at the layer level, but in a browser that rect is the
+         filter's only child and renders in isolation, so the blend is ignored and
+         the plate paints straight over the artwork — which is what was washing
+         the picture out. On the group it behaves in both places. */
+      /* The speckle's strength is the plate alpha times the flood alpha, so the
+         same result can be had from a faint plate with an opaque flood or a
+         strong plate with a faint one. The faint plate is the safer half: the
+         plate is the part that would paint directly if a viewer ever ignored the
+         group's blend mode, so keeping it as low as the speckle allows makes
+         that failure small instead of a wash. */
+      const a1=clamp(S.grain*gain*0.42,0,1), a2=clamp(S.grain*gain*0.35,0,1);
+      defs.push(noiseFilterMono('filter1_n'+sfx,W,H,S.texture,S.grainSize,S.seed,'rgb(0, 0, 0)'));
+      defs.push(noiseFilterMono('filter2_n'+sfx,W,H,S.texture,S.grainSize,(S.seed*7+131)%9999,'rgb(255, 255, 255)'));
+      grain=`<g filter="url(#filter1_n${sfx})" style="mix-blend-mode:multiply">
+<rect width="${W}" height="${H}" style="mix-blend-mode:multiply" fill="url(#${gramp('paintNa_linear'+sfx,'#ffffff','1','0.30')})" fill-opacity="${a1.toFixed(3)}"/>
+</g>
+<g filter="url(#filter2_n${sfx})" style="mix-blend-mode:screen">
+<rect width="${W}" height="${H}" style="mix-blend-mode:screen" fill="url(#${gramp('paintNb_linear'+sfx,'#000000','0.30','1')})" fill-opacity="${a2.toFixed(3)}"/>
+</g>`;
+    }else{
+      defs.push(noiseFilter('filter1_n'+sfx,W,H,S.texture,S.grainSize,S.seed,S.grainStyle));
+      grain=`<g filter="url(#filter1_n${sfx})" style="mix-blend-mode:multiply">
+<rect width="${W}" height="${H}" style="mix-blend-mode:multiply" fill="url(#${gramp('paintN_linear'+sfx,col(0),GRAIN_END,GRAIN_END)})" fill-opacity="${clamp(S.grain,0,1).toFixed(3)}"/>
+</g>`;
+    }
+  }
+
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="${W}" height="${H}" fill="${col(0)}"/>
+${body.join('\n')}
+${grain}
+<defs>
+${defs.join('\n')}
+</defs>
+</svg>`;
+}
+
+function draw(){
+  const [W,H]=FRAMES[S.frame];
+  $('preview').innerHTML=buildSVG();
+  $('mDim').textContent=W+'×'+H;
+  $('mForm').textContent=(FORMS.find(f=>f[0]===S.form)||['','—'])[1];
+  $('mSeed').textContent='seed '+S.seed;
+}
+let raf=null;
+const schedule=()=>{if(raf)cancelAnimationFrame(raf);raf=requestAnimationFrame(draw);};
+
+/* ---------- history ---------- */
+const KEYS=['frame','form','dir','colors','mid','falloff','exposure','sat','contrast','highlights','shadows','width','height','offsetX','offsetY','blur','shadow','shadowSoft','erodeDepth','erodeCount','erodeSpread','erodeSides','warpFreq','warpRand','drift','driftDir','seed','grain','grainSize','grainStyle','texture','ref'];
+function snap(){const o={};KEYS.forEach(k=>o[k]=S[k]);return JSON.stringify(o);}
+const DEFAULT_SNAP=snap();
+let baseline=snap(), undoStack=[], redoStack=[];
+function commit(){
+  const now=snap();
+  if(now===baseline)return;
+  undoStack.push(baseline);
+  if(undoStack.length>80)undoStack.shift();
+  baseline=now; redoStack.length=0; updateHist();
+}
+function restore(str){
+  const o=JSON.parse(str);
+  KEYS.forEach(k=>{S[k]=Array.isArray(o[k])?o[k].slice():o[k];});
+  baseline=str; syncAll(); draw(); updateHist();
+}
+function undo(){
+  if(!undoStack.length)return;
+  redoStack.push(baseline);
+  restore(undoStack.pop());
+  toast('Undo');
+}
+function redo(){
+  if(!redoStack.length)return;
+  undoStack.push(baseline);
+  restore(redoStack.pop());
+  toast('Redo');
+}
+function updateHist(){
+  $('undo').disabled=!undoStack.length;
+  $('redo').disabled=!redoStack.length;
+}
+document.addEventListener('keydown',e=>{
+  const k=e.key.toLowerCase();
+  if((e.metaKey||e.ctrlKey)&&k==='z'){
+    e.preventDefault();
+    if(e.shiftKey)redo(); else undo();
+  }else if((e.metaKey||e.ctrlKey)&&k==='y'){e.preventDefault();redo();}
+});
+/* Zoom is a view of the artwork, not a property of it: it never enters the
+   state, the history or the export, so undo cannot move the camera and the file
+   you download is unaffected by how closely you were looking at it. */
+let zoom=1, panX=0, panY=0;
+const ZSTEPS=[0.5,0.75,1,1.5,2,3,4];
+function applyZoom(){
+  const wrap=$('previewWrap');
+  if(!wrap)return;
+  if(zoom<=1){panX=0;panY=0;}
+  wrap.style.transform=`translate(${panX}px, ${panY}px) scale(${zoom})`;
+  wrap.classList.toggle('pannable',zoom>1);
+  $('zoomReset').textContent=Math.round(zoom*100)+'%';
+  $('zoomIn').disabled=zoom>=ZSTEPS[ZSTEPS.length-1]-1e-6;
+  $('zoomOut').disabled=zoom<=ZSTEPS[0]+1e-6;
+}
+function stepZoom(dir){
+  const i=ZSTEPS.findIndex(z=>Math.abs(z-zoom)<1e-6);
+  let n=i<0?ZSTEPS.findIndex(z=>z>zoom):(i+dir);
+  n=clamp(n<0?0:n,0,ZSTEPS.length-1);
+  zoom=ZSTEPS[n];applyZoom();
+}
+$('zoomIn').onclick=()=>stepZoom(1);
+$('zoomOut').onclick=()=>stepZoom(-1);
+$('zoomReset').onclick=()=>{zoom=1;panX=0;panY=0;applyZoom();};
+document.addEventListener('keydown',e=>{
+  if(/^(INPUT|TEXTAREA|SELECT)$/.test((e.target.tagName||'')))return;
+  if(e.metaKey||e.ctrlKey||e.altKey)return;
+  if(e.key==='+'||e.key==='='){e.preventDefault();stepZoom(1);}
+  else if(e.key==='-'||e.key==='_'){e.preventDefault();stepZoom(-1);}
+  else if(e.key==='0'){e.preventDefault();zoom=1;panX=0;panY=0;applyZoom();}
+});
+/* drag to pan once zoomed in — zooming without it means never seeing the edges */
+(()=>{
+  const wrap=$('previewWrap'); let dragging=false, sx=0, sy=0;
+  wrap.addEventListener('pointerdown',e=>{
+    if(zoom<=1)return;
+    dragging=true;sx=e.clientX-panX;sy=e.clientY-panY;
+    wrap.classList.add('grabbing');wrap.setPointerCapture(e.pointerId);
+  });
+  wrap.addEventListener('pointermove',e=>{
+    if(!dragging)return;
+    panX=e.clientX-sx;panY=e.clientY-sy;applyZoom();
+  });
+  const stop=e=>{dragging=false;wrap.classList.remove('grabbing');};
+  wrap.addEventListener('pointerup',stop);
+  wrap.addEventListener('pointercancel',stop);
+})();
+applyZoom();
+
+document.querySelectorAll('.phead').forEach(h=>{
+  h.addEventListener('click',()=>h.setAttribute('aria-expanded',h.getAttribute('aria-expanded')==='true'?'false':'true'));
+});
+
+$('undo').onclick=undo;
+$('redo').onclick=redo;
+
+/* Randomize rolls composition, palette, light and motion. Ranges are bounded so
+   the result lands in family rather than anywhere.
+   Deliberately HELD, never rolled — the frame, the whole Finish panel, and the
+   whole Finish panel:
+     frame · exposure · sat · contrast · highlights · shadows · grain · grainSize ·
+     grainStyle
+   Anything added to the tool stays out of this list unless it is asked for. */
+$('randomize').onclick=()=>{
+  const R=Math.random, pick=a=>a[Math.floor(R()*a.length)];
+  if(S.ref&&S.ref.length>=3&&R()<0.5){
+    /* a reference image is loaded, so draw from it half the time */
+    const mids=rankedMiddles(S.ref);
+    S.colors=[S.ref[0],mids.length?pick(mids):S.ref[1],S.ref[S.ref.length-1]];
+  }else{
+    S.colors=pick(PALETTES).c.slice();
+  }
+  S.form='field';
+  S.shadow=pick(SHADOWS)[0];
+  S.erodeDepth=0.04+R()*0.22;
+  S.erodeCount=1+Math.floor(R()*5);
+  S.erodeSpread=0.08+R()*0.24;
+  S.erodeSides=pick(['auto','auto','auto','b','bl','br','t','l','r']);
+  S.dir=pick(DIRS)[0];
+  /* Size and position, on their own scales. The margin roll that used to live here
+     was renamed onto Width and Height when margin became offset, which fed
+     margin-sized numbers into a size control — every roll came out a sliver, some
+     of them negative. Width and Height sit around the 76% default; the axes are
+     rolled separately so a roll can be a band or a column, but they stay close
+     enough often enough that most rolls read as a field. */
+  const wBase=0.58+R()*0.46;
+  S.width=wBase*(0.85+R()*0.3);
+  S.height=wBase*(0.85+R()*0.3);
+  S.offsetX=(R()-0.5)*0.30;
+  S.offsetY=(R()-0.5)*0.30;
+  S.blur=0.06+R()*0.10;
+  S.organic=R()*0.85;
+  S.drift=R()<0.6?0:R()*0.4;
+  S.driftDir=pick(['across','across','along']);
+  S.falloff=R()*0.85;
+  S.mid=0.36+R()*0.28;
+  S.seed=1+Math.floor(R()*999);
+  syncAll();schedule();commit();
+  toast('Randomized');
+};
+$('resetAll').onclick=()=>{
+  const o=JSON.parse(DEFAULT_SNAP);
+  KEYS.forEach(k=>{S[k]=Array.isArray(o[k])?o[k].slice():o[k];});
+  lastRefSrc='';
+  syncAll();schedule();commit();
+  toast('Reset to defaults');
+};
+
+/* ---------- controls ---------- */
+function chips(el,items,get,set){
+  el.innerHTML='';
+  items.forEach(([v,label])=>{
+    const b=document.createElement('button');
+    b.className='chip';b.type='button';b.textContent=label;
+    b.setAttribute('aria-pressed',get()===v?'true':'false');
+    b.onclick=()=>{
+      set(v);
+      const peer=el.id==='forms'?$('forms2'):(el.id==='forms2'?$('forms'):null);
+      [...el.children].forEach(c=>c.setAttribute('aria-pressed','false'));
+      if(peer)[...peer.children].forEach(c=>c.setAttribute('aria-pressed','false'));
+      b.setAttribute('aria-pressed','true');schedule();commit();
+    };
+    el.appendChild(b);
+  });
+}
+function syncChips(){
+  chips($('frames'),Object.keys(FRAMES).map(k=>[k,k]),()=>S.frame,v=>S.frame=v);
+  chips($('shadowShapes'),SHADOWS,()=>S.shadow,v=>S.shadow=v);
+  /* Which edges the shadow enters from. Multi-select, because a shadow reaching in
+     from two sides at once is the commonest thing the references show. */
+  (function(){
+    const host=$('erodeSides'); if(!host)return;
+    const opts=[['auto','Follow light'],['t','Top'],['r','Right'],['b','Bottom'],['l','Left']];
+    host.innerHTML='';
+    for(const [k,label] of opts){
+      const el=document.createElement('button');
+      el.type='button'; el.className='chip'; el.textContent=label;
+      const cur=S.erodeSides||'auto';
+      el.setAttribute('aria-pressed', k==='auto' ? (cur==='auto'?'true':'false')
+                                                 : (cur!=='auto' && cur.indexOf(k)>=0?'true':'false'));
+      el.onclick=()=>{
+        const c=S.erodeSides||'auto';
+        if(k==='auto'){ S.erodeSides='auto'; }
+        else{
+          /* the first named side leaves Follow light rather than adding to it */
+          const base=c==='auto'?'':c;
+          const next=base.indexOf(k)>=0?base.replace(k,''):base+k;
+          S.erodeSides=next.length?next:'auto';
+        }
+        syncChips(); schedule(); commit();
+      };
+      host.appendChild(el);
+    }
+  })();
+  chips($('dirs'),DIRS,()=>S.dir,v=>S.dir=v);
+  chips($('drifts'),DRIFTDIRS,()=>S.driftDir,v=>S.driftDir=v);
+  const cur=S.colors.join();
+  document.querySelectorAll('#palettes .chip').forEach(c=>
+    c.setAttribute('aria-pressed', c.dataset.cols===cur?'true':'false'));
+}
+
+[['palettes','room']].forEach(([id,g])=>{
+  const el=$(id); el.innerHTML='';
+  PALETTES.filter(p=>p.g===g).forEach(p=>{
+    const b=document.createElement('button');
+    b.className='chip';b.type='button';b.textContent=p.n;
+    if(p.t)b.title=p.t;
+    b.dataset.cols=p.c.join();
+    b.onclick=()=>{S.colors=p.c.slice();syncColors();syncChips();schedule();commit();};
+    el.appendChild(b);
+  });
+});
+
+/* each row gets a range + a typed number box, kept in sync */
+CTRLS.forEach(c=>{
+  const row=document.querySelector(`.row[data-ctrl="${c.id}"]`);
+  /* A control with no row in the markup used to throw here and take the whole
+     panel build down with it — every chip row after the failure went unbuilt. */
+  if(!row){console.warn('no row for control',c.id);return;}
+  const r=document.createElement('input');
+  r.type='range';r.min=c.min;r.max=c.max;r.step=c.step;r.id=c.id;
+  const n=document.createElement('input');
+  n.type='number';n.className='num';n.id=c.id+'N';
+  n.min=(c.min*c.scale).toFixed(c.dec);n.max=(c.max*c.scale).toFixed(c.dec);
+  n.step=Math.max(c.step*c.scale,Math.pow(10,-c.dec)).toFixed(c.dec);
+  row.appendChild(r);row.appendChild(n);
+  const show=v=>{r.value=v;n.value=(v*c.scale).toFixed(c.dec);};
+  c.show=show;
+  r.addEventListener('input',()=>{S[c.id]=parseFloat(r.value);n.value=(S[c.id]*c.scale).toFixed(c.dec);schedule();});
+  r.addEventListener('change',commit);
+  n.addEventListener('change',()=>{
+    let v=parseFloat(n.value);
+    if(isNaN(v)){show(S[c.id]);return;}
+    v=clamp(v/c.scale,c.min,c.max);
+    S[c.id]=v;show(v);schedule();commit();
+  });
+});
+
+$('grainStyle').addEventListener('change',e=>{S.grainStyle=e.target.value;schedule();commit();});
+$('seedNum').addEventListener('change',()=>{
+  let v=parseInt($('seedNum').value,10);
+  if(isNaN(v))v=S.seed;
+  S.seed=clamp(v,1,999);$('seedNum').value=S.seed;schedule();commit();
+});
+$('shuffle').addEventListener('click',()=>{
+  let v=S.seed;
+  while(v===S.seed)v=1+Math.floor(Math.random()*999);
+  S.seed=v;$('seedNum').value=v;schedule();commit();
+});
+
+[0,1,2].forEach(i=>{
+  const inp=$('c'+i);
+  inp.addEventListener('input',()=>{S.colors[i]=inp.value;syncColors();schedule();});
+  inp.addEventListener('change',()=>{syncChips();commit();});
+});
+function syncColors(){
+  [0,1,2].forEach(i=>{
+    $('c'+i).value=S.colors[i];
+    $('sw'+i).style.background=S.colors[i];
+    $('h'+i).textContent=S.colors[i].toUpperCase();
+  });
+}
+function syncRef(){
+  const has=S.ref&&S.ref.length>=3;
+  $('refStrip').hidden=!has;$('refBtns').hidden=!has;
+  $('refThumb').hidden=!has||!lastRefSrc;
+  if(lastRefSrc)$('refThumb').src=lastRefSrc;
+  $('dropLabel').textContent=has?'Replace image':'Drop an image or click';
+  if(has){
+    $('refStrip').innerHTML='';
+    S.ref.forEach(c=>{const s=document.createElement('span');s.style.background=c;s.title=c;$('refStrip').appendChild(s);});
+  }
+}
+function syncAll(){
+  CTRLS.forEach(c=>c.show(S[c.id]));
+  $('seedNum').value=S.seed;
+  $('grainStyle').value=S.grainStyle;
+  syncColors();syncChips();syncRef();
+}
+
+/* ---------- palette from an image ---------- */
+function kmeans(pts,k,iters){
+  if(pts.length<k)k=Math.max(1,pts.length);
+  const cent=[];
+  const sorted=pts.slice().sort((a,b)=>(a[0]+a[1]+a[2])-(b[0]+b[1]+b[2]));
+  for(let i=0;i<k;i++)cent.push(sorted[Math.floor((i+0.5)/k*sorted.length)].slice());
+  let assign=new Array(pts.length).fill(0);
+  for(let it=0;it<iters;it++){
+    for(let i=0;i<pts.length;i++){
+      let best=0,bd=Infinity;
+      for(let j=0;j<k;j++){
+        const dx=pts[i][0]-cent[j][0],dy=pts[i][1]-cent[j][1],dz=pts[i][2]-cent[j][2];
+        const d=dx*dx+dy*dy+dz*dz;
+        if(d<bd){bd=d;best=j;}
+      }
+      assign[i]=best;
+    }
+    const sum=Array.from({length:k},()=>[0,0,0,0]);
+    for(let i=0;i<pts.length;i++){
+      const a=assign[i];
+      sum[a][0]+=pts[i][0];sum[a][1]+=pts[i][1];sum[a][2]+=pts[i][2];sum[a][3]++;
+    }
+    for(let j=0;j<k;j++)if(sum[j][3])cent[j]=[sum[j][0]/sum[j][3],sum[j][1]/sum[j][3],sum[j][2]/sum[j][3]];
+  }
+  const counts=new Array(k).fill(0);
+  assign.forEach(a=>counts[a]++);
+  return cent.map((c,i)=>({hex:rgbToHex(c[0],c[1],c[2]),n:counts[i]})).filter(c=>c.n>0);
+}
+function samplePalette(img){
+  const n=72, c=document.createElement('canvas');
+  c.width=n;c.height=n;
+  const x=c.getContext('2d',{willReadFrequently:true});
+  x.drawImage(img,0,0,n,n);
+  const d=x.getImageData(0,0,n,n).data, pts=[];
+  for(let i=0;i<n*n;i++){const o=i*4;if(d[o+3]>128)pts.push([d[o],d[o+1],d[o+2]]);}
+  if(!pts.length)return null;
+  const cl=kmeans(pts,6,10).sort((a,b)=>lum(a.hex)-lum(b.hex));
+  return cl.map(c=>c.hex);
+}
+let remixStep=0, lastRefSrc='';
+/* rank the inner samples: a good middle stop is chromatic and sits well clear
+   of both the ground and the light, otherwise the ramp reads as two flat halves */
+function rankedMiddles(p){
+  const lo=lum(p[0]), hi=lum(p[p.length-1]), span=Math.max(1,hi-lo);
+  return p.slice(1,p.length-1).map(hex=>{
+    const [r,g,b]=hexToRgb(hex);
+    const [,s]=rgbToHsl(r,g,b);
+    const rel=clamp((lum(hex)-lo)/span,0,1);
+    const spread=Math.min(rel,1-rel)*2;              /* 1 at the midpoint, 0 at either end */
+    return {hex,score:spread*0.75+s*0.25};
+  }).sort((a,b)=>b.score-a.score).map(o=>o.hex);
+}
+function applyTriad(){
+  const p=S.ref;
+  if(!p||p.length<3)return;
+  const mids=rankedMiddles(p);
+  S.colors=[p[0], mids.length?mids[remixStep%mids.length]:p[1], p[p.length-1]];
+  syncColors();syncChips();schedule();
+}
+function loadImage(file){
+  if(!file||!/^image\//.test(file.type)){toast('That file is not an image');return;}
+  const fr=new FileReader();
+  fr.onload=()=>{
+    const img=new Image();
+    img.onload=()=>{
+      const pal=samplePalette(img);
+      if(!pal){toast('Could not read that image');return;}
+      S.ref=pal;remixStep=0;lastRefSrc=fr.result;
+      syncRef();applyTriad();commit();
+      toast('Palette sampled');
+    };
+    img.onerror=()=>toast('Could not read that image');
+    img.src=fr.result;
+  };
+  fr.readAsDataURL(file);
+}
+$('drop').onclick=()=>$('file').click();
+$('file').addEventListener('change',e=>{loadImage(e.target.files[0]);e.target.value='';});
+['dragenter','dragover'].forEach(ev=>$('drop').addEventListener(ev,e=>{e.preventDefault();$('drop').classList.add('over');}));
+['dragleave','drop'].forEach(ev=>$('drop').addEventListener(ev,e=>{e.preventDefault();$('drop').classList.remove('over');}));
+$('drop').addEventListener('drop',e=>{if(e.dataTransfer.files.length)loadImage(e.dataTransfer.files[0]);});
+$('remix').onclick=()=>{remixStep++;applyTriad();commit();};
+$('clearRef').onclick=e=>{
+  e.stopPropagation();
+  S.ref=[];remixStep=0;   /* the thumbnail source is kept so undo can restore it */
+  syncRef();commit();
+  toast('Reference cleared · colours kept');
+};
+
+/* ---------- export ---------- */
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('on'),1700);}
+function stamp(){return `gradient_${S.form}_${S.frame.replace(':','x')}_${S.seed}`;}
+function download(blob,name){
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+}
+$('dlSvg').onclick=()=>{download(new Blob([buildSVG()],{type:'image/svg+xml'}),stamp()+'.svg');toast('SVG saved');};
+$('copySvg').onclick=async()=>{
+  const svg=buildSVG();
+  try{await navigator.clipboard.writeText(svg);}
+  catch(e){const ta=document.createElement('textarea');ta.value=svg;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();}
+  toast('SVG copied · paste into Figma');
+};
+/* The texture is baked into the SVG and rasterised with it. An earlier build
+   painted grain onto the canvas separately because it appeared to vanish on
+   export — that was the noise sitting at the pixel sampling limit, not the
+   filter being dropped, and it is fixed at the source now. */
+function exportPNG(mult){
+  const [W,H]=FRAMES[S.frame];
+  const img=new Image();
+  img.onload=()=>{
+    const c=document.createElement('canvas');c.width=W*mult;c.height=H*mult;
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    c.toBlob(b=>{download(b,stamp()+(mult>1?'@'+mult+'x':'')+'.png');toast('PNG saved · '+c.width+'×'+c.height);},'image/png');
+  };
+  img.onerror=()=>toast('PNG export failed');
+  img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(buildSVG());
+}
+$('png1').onclick=()=>exportPNG(1);
+$('png2').onclick=()=>exportPNG(2);
+$('png4').onclick=()=>exportPNG(4);
+
+/* ---------- go ---------- */
+syncAll();updateHist();draw();
+
+})();
+</script>
+</body>
+</html>
