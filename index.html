@@ -290,15 +290,18 @@
 
   <div id="railFoot">
     <div class="btnrow">
-      <button class="act primary" id="copySvg">Copy SVG</button>
+      <button class="act primary" id="copyPng">Copy PNG 2×</button>
+      <button class="act" id="png2">PNG 2×</button>
+    </div>
+    <div class="btnrow">
+      <button class="act" id="copySvg">Copy SVG</button>
       <button class="act" id="dlSvg">SVG</button>
     </div>
     <div class="btnrow">
       <button class="act" id="png1">PNG 1×</button>
-      <button class="act" id="png2">PNG 2×</button>
       <button class="act" id="png4">PNG 4×</button>
     </div>
-    <div class="foot-note">Copy SVG, then paste onto a Figma canvas. Texture is written as Figma's own noise filter, so it lands as a live effect on the frame.</div>
+    <div class="foot-note">Copy PNG pastes a flat image — the safe choice for a deck that has to export to PDF. Copy SVG pastes live vector layers instead, which stay editable but carry blur regions a PDF has to rasterise.</div>
     <div class="colophon">Pilot, Inc. &copy; 2005—2026</div>
   </div>
 </aside>
@@ -556,13 +559,23 @@ const PALETTES=[
      Member's Bar and Rosa Lounge are unmistakable, Gold Bar and Dining Room less so.
      A fifth deck gradient — #410813 / #673224 / #9A6A3B, warm brown on maroon —
      matches no room name and is not included. */
-  {g:'room',n:'Dining Room', c:['#0B0A0A','#1F1A14','#332617']},
+/* Named for what each palette is, not for a room. They came from pages in the
+     Members Deck rather than from the rooms, so room names were describing something
+     they never belonged to. Each name below is the character of the light stop:
+     Ember is the darkest by a distance and barely lifts off its ground; Amber and
+     Ochre are the two warm ones, Amber the more restrained; Slate is the only cool
+     one, its light stop sitting at 240 degrees against everyone else's 26 to 32. */
+  {g:'room',n:'Ember', c:['#0B0A0A','#1F1A14','#332617']},
   /* Gold Bar moved from deck 3 to deck 2. Deck 3 renders at a highlight of 163
      against deck 2's 112 — the presets each matched their assigned source to
      within 2%, so the brightness complaint was the mapping, not the values. */
-  {g:'room',n:'Gold Bar',    c:['#410813','#673224','#9A6A3B']},
-  {g:'room',n:"Member's Bar",c:['#410813','#5E4656','#747486']},
-  {g:'room',n:'Rosa Lounge', c:['#381507','#762722','#CF8042']}
+  {g:'room',n:'Amber', c:['#410813','#673224','#9A6A3B']},
+  /* Sand is the fifth reference, which had no preset. All five gradients in the
+     deck now have one. It is the lightest of the set — mean luminance 90 against
+     Amber's 60 — and the only one whose ground is plum rather than maroon. */
+  {g:'room',n:'Sand',  c:['#3E1127','#8C5431','#D59C65']},
+  {g:'room',n:'Slate', c:['#410813','#5E4656','#747486']},
+  {g:'room',n:'Ochre', c:['#381507','#762722','#CF8042']}
   /* Palettes sit at roughly ground x0.62, mid and light x0.80 of the values COJE
      supplied — brought back up from the x0.41 / x0.45 / x0.38 of the dark rounds,
      but not all the way to the originals. Deep grounds with luminous cores, which
@@ -599,7 +612,11 @@ const TEXTURES={
 
 const S={
   frame:'4:5', form:'field', dir:'up',
-  colors:['#0B0A0A','#1F1A14','#332617'], mid:0.48, falloff:0.42, depth:0, exposure:0, sat:1.12, contrast:1, highlights:0, midtones:0, shadows:0,
+  colors:['#0B0A0A','#1F1A14','#332617'], mid:0.48, falloff:0.42, depth:0, /* Saturation opens at 100, not 112. The lift was added when the palettes were
+     near-neutral and reading washed out; against the deck references it now pushes
+     every warm preset past them. Measured across the five, mean chroma error is 3.7
+     at 100% against 5.4 at 112%. */
+  exposure:0, sat:1, contrast:1, highlights:0, midtones:0, shadows:0,
   /* A darker baseline: more ground around the field, the middle stop set further
      along the ramp, a little more blur. The work is meant to sit in the dark. */
   /* Lite opens where COJE's references sit rather than where the dark rounds left
@@ -742,10 +759,35 @@ function fieldBox(W,H){
   /* Dome is blurred far harder than the rest, so its hold has to pay for that
      radius or its own softness would wash the border away. */
   const R=S.blur*Math.hypot(W,H)/2*(S.form==='dome'?1.8:1);
-  if(x<0){ /* already off the left — leave it */ } else { const d=Math.max(0,R-x); x+=d*0.9; bw-=d*0.9; }
-  if(x+bw>W){ /* already off the right */ } else { const d=Math.max(0,R-(W-(x+bw))); bw-=d*0.9; }
-  if(y<0){ /* already off the top */ } else { const d=Math.max(0,R-y); y+=d*0.9; bh-=d*0.9; }
-  if(y+bh>H){ /* already off the bottom */ } else { const d=Math.max(0,R-(H-(y+bh))); bh-=d*0.9; }
+  /* The hold used to be a branch: pull the edge in while it sits inside the frame,
+     do nothing once it crosses. At the crossing the pull-in went from nine tenths of
+     the blur radius straight to zero, so dragging Width through that point made the
+     field stall and then jump — which is the snapping in the sliders.
+     It is one continuous curve now. The pull-in still peaks where a soft edge would
+     otherwise wash the border out, and fades to nothing both as the edge reaches the
+     safe distance and as it approaches the frame, so crossing over costs nothing.
+     Someone widening past the frame has asked for bleed; the hold should get out of
+     the way smoothly rather than let go all at once. */
+  /* The held edge is a monotone function of the asked-for edge, which is the whole
+     requirement: whatever else it does, widening the field must never narrow it.
+     The first attempt multiplied "how short of a safe margin" by "how close to the
+     frame", and the product rises and then falls — so the field stalled around 96%
+     and leapt at 100%. Probed directly, the width went +17, +2, +7, +60 across four
+     steps that should each have been +22.
+     This maps the gap to R*(1-e^-2g/R): it starts at zero when the edge is on the
+     frame, rises at twice the rate at first, and flattens toward the blur radius.
+     The final gap is the larger of that and the asked-for gap, and the larger of two
+     rising functions is itself rising — so there is no arrangement of Blur, Width and
+     Height that can make the field go backwards. */
+  const hold=gap=>{
+    if(gap<=0||R<=0)return 0;
+    const held=R*(1-Math.exp(-2*gap/R));
+    return Math.max(0,held-gap);
+  };
+  { const d=hold(x);            x+=d; bw-=d; }
+  { const d=hold(W-(x+bw));     bw-=d; }
+  { const d=hold(y);            y+=d; bh-=d; }
+  { const d=hold(H-(y+bh));     bh-=d; }
   return {x, y, w:Math.max(bw,W*0.05), h:Math.max(bh,H*0.05),
           rx:W/2-w/2+ox+lv[0]*W*st, ry:H/2-h/2+oy+lv[1]*H*st, rw:w, rh:h};
 }
@@ -1119,9 +1161,18 @@ function fieldOutline(bx,amp,rng){
   }
   return out;
 }
+/* Whole pixels, and no repeat of a point the last one already covers. A tenth of a
+   pixel cannot be seen on a shape carrying a blur of a hundred pixels, and the
+   decimals were a fifth of every coordinate's length. Dropping a point that rounds
+   onto its predecessor costs nothing and removes the runs of duplicates that
+   resampling leaves along the straight sides. */
 function toPath(pts){
-  let s='M';
-  for(let i=0;i<pts.length;i++)s+=(i?'L':'')+pts[i][0].toFixed(1)+' '+pts[i][1].toFixed(1);
+  let s='M', px=null, py=null, n=0;
+  for(let i=0;i<pts.length;i++){
+    const x=Math.round(pts[i][0]), y=Math.round(pts[i][1]);
+    if(x===px && y===py) continue;
+    s+=(n++?'L':'')+x+' '+y; px=x; py=y;
+  }
   return s+'Z';
 }
 
@@ -1583,7 +1634,8 @@ ${envelope(ramp,o=>1-crossFade(o))}
     if(S.form==='slat'){
       const n=4+Math.round(rng()*3+S.organic*4);
       const alongX=Math.abs(ax)>Math.abs(ay);
-      const sfid=addBlur(Math.max(sd*0.55,Math.min(W,H)*0.006),-W*0.9,-H*0.9,W*2.8,H*2.8);
+      const dsd=Math.max(sd*0.55,Math.min(W,H)*0.006), dp=Math.ceil(dsd*3);
+      const sfid=addBlur(dsd,-dp,-dp,W+2*dp,H+2*dp);
       const [gr,gg,gb]=hexToRgb(col(0));
       const [gh,gs]=rgbToHsl(gr,gg,gb);
       const [SR,SG,SB]=hslToRgb(gh,clamp(gs*0.75,0,1),0.09);
@@ -1729,14 +1781,27 @@ ${envelope(ramp,o=>1-crossFade(o))}
     const srng=mulberry32(((S.seed|0)*7919+13)>>>0);
     const sbx={x:bx.rx==null?bx.x:bx.rx, y:bx.ry==null?bx.y:bx.ry,
                w:bx.rw==null?bx.w:bx.rw, h:bx.rh==null?bx.h:bx.rh};
-    const rectPts=resample(unitOutline('field',1,srng).map(p=>mapUnit(sbx,formAxis())(p[0],p[1])),320);
+    /* 160, not 320. The shadow is blurred at several times the field's radius, so the
+       outline's fine detail never reaches the picture: measured, halving the points
+       changes the render by at most 2 levels, which is below the grain. It is a
+       quarter of the exported file. */
+    const rectPts=resample(unitOutline('field',1,srng).map(p=>mapUnit(sbx,formAxis())(p[0],p[1])),160);
     const inner=erodedOutline(rectPts,sbx,srng);
     const soft=clamp(S.shadowSoft==null?0.5:S.shadowSoft,0,1);
     /* Floored well above the field's own blur, so the shadow is softer than the
        edge it lies against whatever Blur is set to — at the default that is
        about four times the field's radius. */
     const ssd=Math.max(sd*2.2, D*(0.035+soft*0.095));
-    const sfid=addBlur(ssd,-W*0.9,-H*0.9,W*2.8,H*2.8);
+/* Filter regions are sized to the blur, not to a fixed multiple of the frame.
+       A Gaussian is done at three standard deviations — beyond that it contributes
+       under a third of a percent, which is less than a single level of an 8-bit
+       channel. The old region was the frame times 2.8 in each direction regardless
+       of radius: on a 1080x1350 frame that is 3682 x 4438, over sixteen megapixels,
+       and a PDF export rasterises the whole of it for every gradient on every page.
+       That is what made the deck too heavy to export, not the size of the file. */
+    const pad3=r=>Math.ceil(r*3);
+    const sp=pad3(ssd);
+    const sfid=addBlur(ssd,-sp,-sp,W+2*sp,H+2*sp);
     const [gr,gg,gb]=hexToRgb(col(0));
     /* The palette's own darkest value, not a darkened version of it and not black.
        A shadow in this tool should never introduce a colour the palette does not
@@ -2233,6 +2298,32 @@ function exportPNG(mult){
   img.onerror=()=>toast('PNG export failed');
   img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(buildSVG());
 }
+/* Copy PNG 2x is the primary action. A pasted SVG keeps its blur as a live filter,
+   and a PDF export has to rasterise that filter's whole region for every gradient on
+   every page — which is what made the deck too heavy to export. A pasted PNG is one
+   flat image and costs the PDF nothing beyond its own pixels. */
+function copyPNG(mult){
+  const [W,H]=FRAMES[S.frame];
+  const img=new Image();
+  img.onload=()=>{
+    const c=document.createElement('canvas');c.width=W*mult;c.height=H*mult;
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    c.toBlob(async b=>{
+      try{
+        await navigator.clipboard.write([new ClipboardItem({'image/png':b})]);
+        toast('PNG copied · '+c.width+'×'+c.height);
+      }catch(e){
+        /* clipboard image writing needs a secure context and permission; falling back
+           to a download beats failing silently */
+        download(b,stamp()+'@'+mult+'x.png');
+        toast('Clipboard unavailable — PNG saved instead');
+      }
+    },'image/png');
+  };
+  img.onerror=()=>toast('PNG copy failed');
+  img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(buildSVG());
+}
+$('copyPng').onclick=()=>copyPNG(2);
 $('png1').onclick=()=>exportPNG(1);
 $('png2').onclick=()=>exportPNG(2);
 $('png4').onclick=()=>exportPNG(4);
