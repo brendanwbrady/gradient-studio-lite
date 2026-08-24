@@ -192,7 +192,10 @@
     <div class="group" data-panel>
       <button class="phead" type="button" aria-expanded="false"><span>Palette</span><i class="caret"></i></button>
       <div class="pbody">
-            <div class="chips" id="palettes"></div>
+      <div class="sublabel">Deck</div>
+      <div class="chips" id="palettes"></div>
+      <div class="glabel" id="roomsLabel" style="margin:14px 0 8px;display:none">Rooms</div>
+      <div class="chips" id="palettesRooms"></div>
       <div style="height:14px"></div>
       <div class="stop"><span class="sw" id="sw0"><input type="color" id="c0"></span><span class="nm">Ground</span><span class="hex" id="h0"></span></div>
       <div class="stop"><span class="sw" id="sw1"><input type="color" id="c1"></span><span class="nm">Middle</span><span class="hex" id="h1"></span></div>
@@ -575,7 +578,22 @@ const PALETTES=[
      Amber's 60 — and the only one whose ground is plum rather than maroon. */
   {g:'room',n:'Sand',  c:['#3E1127','#8C5431','#D59C65']},
   {g:'room',n:'Slate', c:['#410813','#5E4656','#747486']},
-  {g:'room',n:'Ochre', c:['#381507','#762722','#CF8042']}
+  {g:'room',n:'Ochre', c:['#381507','#762722','#CF8042']},
+
+  /* THE ROOMS, sampled from the renders rather than from the V1 gradients made from
+     them — a generation closer to the source.
+     Sampled in bands, not at the extremes. A room render's darkest pixels are crushed
+     black and its brightest are the lamp bulbs, and taking those gives four palettes
+     whose light stop is the same cream every time: #F6E4B2, #FDECC5, #FAF1AC,
+     #F9EFC8 across the four, which is the bulb rather than the room. The ground is
+     the median of the 3rd to 10th percentile, the middle of the 45th to 60th, and
+     the light of the 86th to 96th — high enough to be the lit surfaces, below the
+     blown-out sources. That is what keeps the Gold Bar gold and the Rosa Lounge red
+     instead of making both of them cream. */
+  {g:'space',n:'Dining Room', c:['#0C0A04','#25200F','#BB8741']},
+  {g:'space',n:'Gold Bar',    c:['#170600','#4C1E06','#AE681A']},
+  {g:'space',n:"Member's Bar",c:['#0D0603','#4D2815','#A56A36']},
+  {g:'space',n:'Rosa Lounge', c:['#1D0000','#5B1108','#AE532D']}
   /* Palettes sit at roughly ground x0.62, mid and light x0.80 of the values COJE
      supplied — brought back up from the x0.41 / x0.45 / x0.38 of the dark rounds,
      but not all the way to the originals. Deep grounds with luminous cores, which
@@ -1996,22 +2014,26 @@ document.querySelectorAll('.phead').forEach(h=>{
 $('undo').onclick=undo;
 $('redo').onclick=redo;
 
-/* Randomize rolls composition, palette, light and motion. Ranges are bounded so
-   the result lands in family rather than anywhere.
-   Deliberately HELD, never rolled — the frame, the whole Finish panel, and the
-   whole Finish panel:
-     frame · exposure · sat · contrast · highlights · shadows · grain · grainSize ·
-     grainStyle
+/* Randomize rolls composition, light and motion. Ranges are bounded so the result
+   lands in family rather than anywhere.
+   Deliberately HELD, never rolled:
+     the palette — whether a preset or a sampled image
+     the frame
+     the whole Finish panel: exposure · sat · contrast · highlights · midtones ·
+     shadows · grain · grainSize · grainStyle
    Anything added to the tool stays out of this list unless it is asked for. */
 $('randomize').onclick=()=>{
   const R=Math.random, pick=a=>a[Math.floor(R()*a.length)];
-  if(S.ref&&S.ref.length>=3&&R()<0.5){
-    /* a reference image is loaded, so draw from it half the time */
-    const mids=rankedMiddles(S.ref);
-    S.colors=[S.ref[0],mids.length?pick(mids):S.ref[1],S.ref[S.ref.length-1]];
-  }else{
-    S.colors=pick(PALETTES).c.slice();
-  }
+  /* THE PALETTE IS NEVER RANDOMISED.
+     Randomize used to reach into it — a different preset most of the time, and a
+     fresh draw from the sampled image the rest. Both are wrong for how this tool is
+     used: the palette is the one decision that comes from outside, whether it is a
+     room's colours or an image someone brought, and rolling for a new composition
+     should not throw that away. Choosing a palette is a choice; everything Randomize
+     touches is an exploration within it.
+     A sampled image is doubly protected — it survives Randomize exactly as a chosen
+     preset does, because someone who uploaded a reference has been even more
+     deliberate than someone who clicked a chip. */
   S.form='field';
   S.shadow=pick(SHADOWS)[0];
   S.erodeDepth=0.04+R()*0.22;
@@ -2097,13 +2119,22 @@ function syncChips(){
   chips($('dirs'),DIRS,()=>S.dir,v=>S.dir=v);
   chips($('drifts'),DRIFTDIRS,()=>S.driftDir,v=>S.driftDir=v);
   const cur=S.colors.join();
-  document.querySelectorAll('#palettes .chip').forEach(c=>
+  document.querySelectorAll('#palettes .chip, #palettesRooms .chip').forEach(c=>
     c.setAttribute('aria-pressed', c.dataset.cols===cur?'true':'false'));
 }
 
-[['palettes','room']].forEach(([id,g])=>{
+/* Two sets, each in its own row. "Deck" is the five gradients from the Members Deck;
+   "Rooms" is sampled from renders of the rooms themselves. The Rooms heading hides
+   itself while that set is empty, so the panel never shows a label with nothing
+   under it. */
+[['palettes','room'],['palettesRooms','space']].forEach(([id,g])=>{
   const el=$(id); el.innerHTML='';
-  PALETTES.filter(p=>p.g===g).forEach(p=>{
+  const set=PALETTES.filter(p=>p.g===g);
+  if(id==='palettesRooms'){
+    const lab=$('roomsLabel');
+    if(lab)lab.style.display=set.length?'':'none';
+  }
+  set.forEach(p=>{
     const b=document.createElement('button');
     b.className='chip';b.type='button';b.textContent=p.n;
     if(p.t)b.title=p.t;
