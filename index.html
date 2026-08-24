@@ -529,11 +529,18 @@ const SHADOWPROFILE={
      comes to a point, and a point reads as a spike stabbing the field rather than a
      shadow lying across it. Every profile here is wider than it is deep at the
      default depth. */
+  /* The depth figures are levelled so the presets carry comparable weight at the same
+     slider settings. Measured at three matched Depth and Count pairs, Swell produced
+     9.4 of shadow and Fray 0.4 — a factor of twenty-five, which meant changing shape
+     could all but switch the shadow off and the Depth slider meant something different
+     on every preset. Each is levelled UP toward the strongest rather than toward the group
+     average — correcting toward the average made Swell weaker, which is the wrong
+     trade: nobody wants the preset they liked quietened so the others can catch it. */
   swell:  {count:0.34, width:2.10,depth:1.15, skew:0.15, power:0.62, vary:0.25, lump:0.55},
-  scallop:{count:1.6,  width:1.15,depth:0.58, skew:0.10, power:0.85, vary:0.20, lump:0.35},
-  wedge:  {count:0.5,  width:1.75,depth:1.05, skew:0.80, power:0.75, vary:0.30, lump:0.70},
-  fray:   {count:2.8,  width:0.62,depth:0.50, skew:0.25, power:1.00, vary:0.85, lump:1.00},
-  drift:  {count:1.0,  width:1.35,depth:0.95, skew:0.40, power:0.72, vary:0.95, lump:0.85}
+  scallop:{count:1.6,  width:1.15,depth:1.98, skew:0.10, power:0.85, vary:0.20, lump:0.35},
+  wedge:  {count:0.5,  width:1.75,depth:1.96, skew:0.80, power:0.75, vary:0.30, lump:0.70},
+  fray:   {count:2.8,  width:0.62,depth:2.20, skew:0.25, power:1.00, vary:0.85, lump:1.00},
+  drift:  {count:1.0,  width:1.35,depth:1.96, skew:0.40, power:0.72, vary:0.95, lump:0.85}
 };
 /* forms that compose their own masses instead of one inset shape */
 const REPLACE={mesh:1,orb:1};
@@ -719,9 +726,13 @@ const CTRLS=[
   {id:'offsetX',  min:-0.5, max:0.5, step:0.005,scale:100,dec:0,unit:'%'},
   {id:'offsetY',  min:-0.5, max:0.5, step:0.005,scale:100,dec:0,unit:'%'},
   {id:'blur',     min:0.03,max:0.38,step:0.005,scale:100,dec:0,unit:'%'},
-  {id:'erodeDepth', min:0, max:0.40,step:0.005,scale:100,dec:0,unit:'%'},
-  {id:'erodeCount', min:1, max:8,   step:1,    scale:1,  dec:0,unit:''},
-  {id:'erodeSpread',min:0.04,max:0.40,step:0.005,scale:100,dec:0,unit:'%'},
+  /* 30, not 40: past 30 the outline has eaten as far as it can and the last quarter
+     of the slider produced no change at all — 14.79 at 30, 35 and 40 alike. */
+  {id:'erodeDepth', min:0, max:0.30,step:0.005,scale:100,dec:0,unit:'%'},
+  {id:'erodeCount', min:1, max:6,   step:1,    scale:1,  dec:0,unit:''},
+  /* 28, not 40: a bite already spanning its whole side cannot spread further, and
+     the readings were identical at 28, 34 and 40. */
+  {id:'erodeSpread',min:0.04,max:0.28,step:0.005,scale:100,dec:0,unit:'%'},
   {id:'shadowSoft', min:0,   max:1,   step:0.01, scale:100,dec:0,unit:'%'},
   {id:'drift',    min:0,   max:1,   step:0.01, scale:100,dec:0,unit:'%'},
   {id:'grain',    min:0,   max:0.3, step:0.005,scale:100,dec:0,unit:'%'},
@@ -734,6 +745,11 @@ const DIRVEC={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0],
   upleft:[-R2,-R2],upright:[R2,-R2],downleft:[-R2,R2],downright:[R2,R2]};
 /* The edges a shadow falls on for each light direction — the far side, or for a
    diagonal the two far sides. */
+/* The edges a shadow comes in from: the one furthest from the light, or for a
+   diagonal the two furthest. Entering from the dark end is the right look — a shadow
+   that starts where the picture is already deep and reaches up into the light. An
+   experiment moved this to the edges perpendicular to the light, which anchored the
+   shadow to the frame more firmly but read as less like a shadow, and was reverted. */
 const SHADOWAWAY={up:'b',down:'t',left:'r',right:'l',
   upleft:'br',upright:'bl',downleft:'tr',downright:'tl'};
 function shadowSides(){
@@ -1096,7 +1112,11 @@ function resample(pts,N){
    and no edge where it meets the straight part of the side. */
 function erodedOutline(pts,bx,rng){
   const n=pts.length;
-  const depth=clamp(S.erodeDepth==null?0:S.erodeDepth,0,0.30);
+  /* Eased so the slider's travel matches what the eye sees. Raw, the first third of
+     the range moved the picture by 0.4 and the last third by 5.5 — nearly inert at
+     the bottom and abrupt at the top. */
+  const depthRaw=clamp(S.erodeDepth==null?0:S.erodeDepth,0,0.30);
+  const depth=0.30*Math.pow(depthRaw/0.30,0.62);
   if(depth<0.002||n<8)return pts;
   const count=Math.max(1,Math.round(S.erodeCount==null?3:S.erodeCount));
   const spread=clamp(S.erodeSpread==null?0.18:S.erodeSpread,0.02,0.40);
@@ -1142,16 +1162,31 @@ function erodedOutline(pts,bx,rng){
      differ by the width, depth, lean and lumpiness of each bite — not by how many
      the slider means. */
   const nb=Math.max(1,Math.round(count));
+  /* Bites are spaced around the allowed span and then jittered, rather than each one
+     landing wherever the seed puts it. Placed at random they collided: measured, the
+     shadow grew to Count 6 and then went backwards — 24.4 down to 18.9 at Count 8 —
+     because overlapping bites cannot cut deeper than the deepest of them but do steal
+     each other's room. Spacing them first makes Count monotone. */
   const bites=[];
+  const span=allowed.length;
   for(let k=0;k<nb;k++){
-    const at=allowed[Math.floor(rng()*allowed.length)]/n;
+    const slot=(k+0.5)/nb + (rng()-0.5)*(0.6/nb);
+    const at=allowed[Math.min(span-1,Math.max(0,Math.round(slot*span)))]/n;
     /* vary is how much this preset lets the seed move each bite off the nominal */
     const wv=1-pf.vary*0.5+rng()*pf.vary;
     const dv=1-pf.vary*0.6+rng()*pf.vary*1.2;
     const lumps=[];
     const nl=1+Math.floor(rng()*3);
     for(let q=0;q<nl;q++) lumps.push({f:1.7+q*1.9+rng()*1.3, a:(0.10+rng()*0.30)*pf.lump, ph:rng()*Math.PI*2});
-    bites.push({at, w:clamp(spread*pf.width*wv,0.01,0.48), d:depth*pf.depth*dv,
+    /* Each bite narrows as the count rises. Spacing them stopped the worst of the
+       collisions but not all: at six they still merged, and merged bites cannot cut
+       deeper than the deepest of them while taking each other's room, so the shadow
+       went backwards from five to six. Narrowing keeps them separate, so more bites
+       is more shadow all the way up. */
+    /* Narrowed harder once the presets were levelled up: deeper bites collide sooner,
+       and two of the five went backwards again at high Count until this was tightened. */
+    const crowd=Math.min(1,2.2/(nb+1.2));
+    bites.push({at, w:clamp(spread*pf.width*wv*crowd,0.01,0.48), d:depth*pf.depth*dv,
                 sk:(rng()<0.5?-1:1)*pf.skew, lumps});
   }
   const scale=Math.min(bx.w,bx.h);
@@ -1835,7 +1870,11 @@ ${envelope(ramp,o=>1-crossFade(o))}
     /* Floored well above the field's own blur, so the shadow is softer than the
        edge it lies against whatever Blur is set to — at the default that is
        about four times the field's radius. */
-    const ssd=Math.max(sd*2.2, D*(0.035+soft*0.095));
+    /* Widened. The old range ran from about 2.2x the field's blur to 3x, which is not
+       enough travel to be worth a slider — the whole sweep moved the shadow's edge by
+       a tenth of a level. It now runs from a shadow with a readable edge to one
+       softer than the field it lies on. */
+    const ssd=Math.max(sd*0.9, D*(0.012+soft*0.16));
 /* Filter regions are sized to the blur, not to a fixed multiple of the frame.
        A Gaussian is done at three standard deviations — beyond that it contributes
        under a third of a percent, which is less than a single level of an 8-bit
