@@ -559,7 +559,7 @@ const PALETTES=[
      below is measured from a deck gradient: ground from its darkest decile, mid from
      the median band, light from its brightest few percent.
      The mapping of deck to room is by colour family and is a guess worth checking:
-     Member's Bar and Rosa Lounge are unmistakable, Gold Bar and Dining Room less so.
+     Member's Bar and Rossa Lounge are unmistakable, Gold Bar and Dining Room less so.
      A fifth deck gradient — #410813 / #673224 / #9A6A3B, warm brown on maroon —
      matches no room name and is not included. */
 /* Named for what each palette is, not for a room. They came from pages in the
@@ -595,12 +595,22 @@ const PALETTES=[
      #F9EFC8 across the four, which is the bulb rather than the room. The ground is
      the median of the 3rd to 10th percentile, the middle of the 45th to 60th, and
      the light of the 86th to 96th — high enough to be the lit surfaces, below the
-     blown-out sources. That is what keeps the Gold Bar gold and the Rosa Lounge red
+     blown-out sources. That is what keeps the Gold Bar gold and the Rossa Lounge red
      instead of making both of them cream. */
-  {g:'space',n:'Dining Room', c:['#0C0A04','#25200F','#BB8741']},
-  {g:'space',n:'Gold Bar',    c:['#170600','#4C1E06','#AE681A']},
-  {g:'space',n:"Member's Bar",c:['#0D0603','#4D2815','#A56A36']},
-  {g:'space',n:'Rosa Lounge', c:['#1D0000','#5B1108','#AE532D']}
+/* Each room is a blend of what the render gave and what V1 had, weighted by which
+     one was preferred. Rossa Lounge and Gold Bar sit at 22% toward V1 — the render
+     version was the better one and this is a touch of the old warmth, not a retreat
+     from it. Dining Room and Member's Bar sit at 68% toward V1, because that is where
+     their character was, with the render pulling their grounds down out of the washed
+     mid-tones V1 had left them in.
+     Mixed in LINEAR light, not in sRGB. Averaging #0D0603 and #420714 as plain bytes
+     lands halfway up the encoding curve and comes out muddy; converting to linear,
+     mixing, and converting back keeps the result on the line between the two colours
+     as the eye reads it. */
+  {g:'space',n:'Dining Room', c:['#24121A','#574B33','#C3B592']},
+  {g:'space',n:'Gold Bar',    c:['#5E2C18','#76431B','#C38C4F']},
+  {g:'space',n:"Member's Bar",c:['#380711','#6C5156','#BCB091']},
+  {g:'space',n:'Rossa Lounge',c:['#2F0E0D','#5F1612','#C36E3D']}
   /* Palettes sit at roughly ground x0.62, mid and light x0.80 of the values COJE
      supplied — brought back up from the x0.41 / x0.45 / x0.38 of the dark rounds,
      but not all the way to the originals. Deep grounds with luminous cores, which
@@ -613,7 +623,7 @@ const PALETTES=[
        Dining Room   #29131D #99904C #C6C6BA
        Gold Bar      #BD582D #DA9835 #F1D8A5
        Member's Bar  #420714 #ADB3C4 #C4C6A0
-       Rosa Lounge   #511C18 #7B191E #F2B164 */
+       Rossa Lounge   #511C18 #7B191E #F2B164 */
         ];
 
 /* one filter chassis, four grades of tooth — Figma exposes the same
