@@ -572,12 +572,19 @@ const PALETTES=[
   /* Gold Bar moved from deck 3 to deck 2. Deck 3 renders at a highlight of 163
      against deck 2's 112 — the presets each matched their assigned source to
      within 2%, so the brightness complaint was the mapping, not the values. */
-  {g:'room',n:'Amber', c:['#410813','#673224','#9A6A3B']},
+  /* Amber is now the gradient that actually shipped — the saturated one, close to
+     Ochre in hue at 28 degrees against 26 but brighter and stronger: mean luminance
+     77 against 56, chroma 80% against 77%. The palette it replaced was a version
+     that never made it into the deck. */
+  {g:'room',n:'Amber', c:['#2B0A0F','#8D4315','#E38838']},
   /* Sand is the fifth reference, which had no preset. All five gradients in the
      deck now have one. It is the lightest of the set — mean luminance 90 against
      Amber's 60 — and the only one whose ground is plum rather than maroon. */
   {g:'room',n:'Sand',  c:['#3E1127','#8C5431','#D59C65']},
-  {g:'room',n:'Slate', c:['#410813','#5E4656','#747486']},
+  /* Slate reworked to its shipped reference. The light stop moved from 240 degrees
+     to 256 — further into blue — and the whole palette darkened: the old ground was
+     #410813, the shipped one is #260A0D. It reads as a cooler, deeper room. */
+  {g:'room',n:'Slate', c:['#260A0D','#36121B','#6B6679']},
   {g:'room',n:'Ochre', c:['#381507','#762722','#CF8042']},
 
   /* THE ROOMS, sampled from the renders rather than from the V1 gradients made from
