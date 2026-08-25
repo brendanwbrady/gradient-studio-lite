@@ -536,11 +536,11 @@ const SHADOWPROFILE={
      on every preset. Each is levelled UP toward the strongest rather than toward the group
      average — correcting toward the average made Swell weaker, which is the wrong
      trade: nobody wants the preset they liked quietened so the others can catch it. */
-  swell:  {count:0.34, width:2.10,depth:1.15, skew:0.15, power:0.62, vary:0.25, lump:0.55},
-  scallop:{count:1.6,  width:1.15,depth:1.98, skew:0.10, power:0.85, vary:0.20, lump:0.35},
-  wedge:  {count:0.5,  width:1.75,depth:1.96, skew:0.80, power:0.75, vary:0.30, lump:0.70},
-  fray:   {count:2.8,  width:0.62,depth:2.20, skew:0.25, power:1.00, vary:0.85, lump:1.00},
-  drift:  {count:1.0,  width:1.35,depth:1.96, skew:0.40, power:0.72, vary:0.95, lump:0.85}
+  swell:  {count:0.34, width:2.10,depth:1.15, skew:0.15, power:0.62, vary:0.25, lump:0.55, rake:0.10},
+  scallop:{count:1.6,  width:1.15,depth:1.98, skew:0.10, power:0.85, vary:0.20, lump:0.35, rake:0.00},
+  wedge:  {count:0.5,  width:1.75,depth:1.96, skew:0.80, power:0.75, vary:0.30, lump:0.70, rake:0.85},
+  fray:   {count:2.8,  width:0.62,depth:2.20, skew:0.25, power:1.00, vary:0.85, lump:1.00, rake:0.45},
+  drift:  {count:1.0,  width:1.35,depth:1.96, skew:0.40, power:0.72, vary:0.95, lump:0.85, rake:0.60}
 };
 /* forms that compose their own masses instead of one inset shape */
 const REPLACE={mesh:1,orb:1};
@@ -588,12 +588,12 @@ const PALETTES=[
      deck now have one. It is the lightest of the set — mean luminance 90 against
      Amber's 60 — and the only one whose ground is plum rather than maroon. */
   /* ground and middle taken down; the light stop is where it should be */
-  {g:'room',n:'Sand',  c:['#2F0D1E','#714427','#D59C65']},
+  {g:'room',n:'Sand',  c:['#1F0914','#714427','#D59C65']},
   /* Slate reworked to its shipped reference. The light stop moved from 240 degrees
      to 256 — further into blue — and the whole palette darkened: the old ground was
      #410813, the shipped one is #260A0D. It reads as a cooler, deeper room. */
-  {g:'room',n:'Slate', c:['#20090B','#36121B','#6B6679']},
-  {g:'room',n:'Ochre', c:['#301206','#762722','#CF8042']},
+  {g:'room',n:'Slate', c:['#170708','#36121B','#6B6679']},
+  {g:'room',n:'Ochre', c:['#200C04','#762722','#CF8042']},
 
   /* THE ROOMS, sampled from the renders rather than from the V1 gradients made from
      them — a generation closer to the source.
@@ -618,13 +618,17 @@ const PALETTES=[
      lands halfway up the encoding curve and comes out muddy; converting to linear,
      mixing, and converting back keeps the result on the line between the two colours
      as the eye reads it. */
-  {g:'space',n:'Dining Room', c:['#24121A','#574B33','#C3B592']},
+  /* ground down to the luminance Rossa Lounge and Gold Bar sit at, and the olive
+     pushed toward the green the room actually reads as — saturation up half again
+     on both the middle and the light, with a small hue shift to match. */
+  {g:'space',n:'Dining Room', c:['#180C11','#615829','#CEC387']},
   /* Gold Bar is the reference outright rather than a blend. Its ground was sitting
      at luminance 53 against the reference's 13 and its middle at 75 against 33 —
      the light stop was already right, so the whole difference was the depth
      beneath it. */
-  {g:'space',n:'Gold Bar',    c:['#1D0A01','#391C08','#C39D5B']},
-  {g:'space',n:"Member's Bar",c:['#380711','#6C5156','#BCB091']},
+  /* highlight saturation 46% to 65%, luminance held */
+  {g:'space',n:'Gold Bar',    c:['#1D0A01','#391C08','#D8A346']},
+  {g:'space',n:"Member's Bar",c:['#2C060D','#6C5156','#BCB091']},
   /* darkened and pushed about a fifth further in saturation */
   {g:'space',n:'Rossa Lounge',c:['#290907','#550D09','#CA6C36']}
   /* Palettes sit at roughly ground x0.62, mid and light x0.80 of the values COJE
@@ -1110,6 +1114,18 @@ function resample(pts,N){
    depth it is still recognisably that rectangle with something eating into it.
    Each bite is a raised cosine along the perimeter, so it has no corners of its own
    and no edge where it meets the straight part of the side. */
+/* ROOTING THE SHADOW AT THE FRAME — built, measured, and left OFF.
+   The idea was to give the shadow a visible root at the picture's border so a crown
+   could never read as a shape with no parent. It cannot work, and the reason is worth
+   keeping: the shadow is painted in the palette's ground and composited with darken,
+   so over ground that is already that colour it changes nothing. Extending it out
+   across the margin therefore adds no visible root at all — measured, the shadow at
+   each border was identical with it on and off (bottom 1.0, left 1.0, right 2.0) —
+   while the larger polygon pushed light added from 1.0 to 3.0.
+   A root can only be seen where there is light to take away, and there is no light
+   in the margin. Anything that solves this has to work inside the lit field.
+   Flip to true to render it anyway. */
+const SHADOW_ROOTED=false;
 function erodedOutline(pts,bx,rng){
   const n=pts.length;
   /* Eased so the slider's travel matches what the eye sees. Raw, the first third of
@@ -1186,11 +1202,31 @@ function erodedOutline(pts,bx,rng){
     /* Narrowed harder once the presets were levelled up: deeper bites collide sooner,
        and two of the five went backwards again at high Count until this was tightened. */
     const crowd=Math.min(1,2.2/(nb+1.2));
-    bites.push({at, w:clamp(spread*pf.width*wv*crowd,0.01,0.48), d:depth*pf.depth*dv,
-                sk:(rng()<0.5?-1:1)*pf.skew, lumps});
+    /* A DEEP BITE MUST ALSO BE A BROAD ONE.
+       Visible shadow is available light times shadow density, and there is no light at
+       the entry edge — so the visible peak always sits inside the lit field, and a
+       shape that peaks inside with falloff on every side is a lobe. That cannot be
+       moved. What can be changed is whether the thing peaking is a lobe or a band: a
+       bite that reaches far in and is also wide crosses the whole lit area and reads
+       as the dark rolling over it, while a narrow one of the same depth reads as a
+       spot. Depth therefore pulls width up with it. */
+    const reachW=1+Math.min(1,depth/0.22)*1.35;
+    /* RAKE — the direction a bite travels, not just how far.
+       Every bite used to move straight in along its edge's normal, so whatever else
+       varied, all five presets pushed the dark inward the same way and the seed made
+       more difference than the preset did: measured, the presets differed from each
+       other by 2.09 levels while a single preset varied 2.4 to 3.6 across seeds.
+       A bite now leans along the edge as well, by an amount that belongs to the
+       preset. A raking lean is what makes a shadow look cast from somewhere rather
+       than pressed in from directly outside. */
+    const rake=(rng()<0.5?-1:1)*pf.rake*(0.55+rng()*0.9);
+    /* and how blunt or pointed this particular bite is */
+    const pw=pf.power*(1-pf.vary*0.35+rng()*pf.vary*0.7);
+    bites.push({at, w:clamp(spread*pf.width*wv*crowd*reachW,0.01,0.60), d:depth*pf.depth*dv,
+                sk:(rng()<0.5?-1:1)*pf.skew, rake, pw, lumps});
   }
   const scale=Math.min(bx.w,bx.h);
-  const out=[];
+  const out=[]; const outer=[];
   for(let i=0;i<n;i++){
     /* Only points on a chosen side may move. Widths are a fraction of the whole
        perimeter, so a broad bite would otherwise reach around a corner and eat a
@@ -1203,7 +1239,7 @@ function erodedOutline(pts,bx,rng){
       const lean=1+bq.sk*Math.sign(ds);
       const x=Math.abs(ds)/(bq.w*lean);
       if(x<1){
-        let v=Math.pow(0.5+0.5*Math.cos(Math.PI*x),pf.power);
+        let v=Math.pow(0.5+0.5*Math.cos(Math.PI*x),bq.pw||pf.power);
         /* the lumps ride on the profile and are faded out at its rim, so the bite
            still meets the straight edge cleanly however lumpy its belly is */
         let l=0;
@@ -1214,8 +1250,43 @@ function erodedOutline(pts,bx,rng){
     }
     const [,nx,ny,wq]=meta[i];
     d*=wq;
-    out.push([pts[i][0]-nx*d*scale, pts[i][1]-ny*d*scale]);
+    /* the lean of whichever bite is doing most of the work here */
+    let rk=0, best=0;
+    for(const bq of bites){
+      let ds=i/n-bq.at; if(ds>0.5)ds-=1; if(ds<-0.5)ds+=1;
+      const x=Math.abs(ds)/(bq.w*(1+bq.sk*Math.sign(ds)));
+      if(x<1){ const wgt=1-x; if(wgt>best){best=wgt; rk=bq.rake||0;} }
+    }
+    const tx=-ny, ty=nx;                       /* along the edge */
+    let dxu=nx+tx*rk, dyu=ny+ty*rk;
+    const dl=Math.hypot(dxu,dyu)||1; dxu/=dl; dyu/=dl;
+    /* A raked bite may lean, but not out of the field: leaning carries a point
+       sideways as well as inward, and past the field's own edge it would carve the
+       shadow out of the ground instead — which showed up as light being added where
+       the rule is that a shadow only ever darkens. */
+    out.push([clamp(pts[i][0]-dxu*d*scale, bx.x, bx.x+bx.w),
+              clamp(pts[i][1]-dyu*d*scale, bx.y, bx.y+bx.h)]);
   }
+  /* THE SHADOW'S ROOT.
+     The outer boundary runs out to the frame, but only along the edges the shadow
+     actually enters from. Rooting all four sides turns the ring into a vignette that
+     darkens the margin everywhere and bleeds inward; rooting none leaves the mass
+     floating whenever the ground beside it is not already dark, which is what made a
+     crown read as a shape with no parent.
+     The push is scaled by the same flatness weight the bites use, so it eases to
+     nothing at the corners and there is no step where a rooted edge meets an
+     unrooted one. */
+  if(SHADOW_ROOTED){
+    for(let i=0;i<n;i++){
+      const [side,nx,ny,wq]=meta[i];
+      if(sides.indexOf(side)<0){ outer.push(pts[i]); continue; }
+      const reach=(Math.abs(nx)*bx.w+Math.abs(ny)*bx.h)*0.9+Math.max(bx.w,bx.h)*0.35;
+      outer.push([pts[i][0]+nx*reach*wq, pts[i][1]+ny*reach*wq]);
+    }
+  }else{
+    for(let i=0;i<n;i++)outer.push(pts[i]);
+  }
+  out.outer=outer;
   return out;
 }
 
@@ -1890,8 +1961,35 @@ ${envelope(ramp,o=>1-crossFade(o))}
        A shadow in this tool should never introduce a colour the palette does not
        already contain — the deepest it can go is the ground. */
     const tone=col(0);
+    /* THE SHADOW IS DENSEST AT THE EDGE IT CAME FROM.
+       It used to be a solid fill, and a solid shadow can only ever be seen in
+       proportion to the light it covers — so its visible strength peaked wherever the
+       light peaked, out in the middle of the field, and fell to nothing at the entry
+       edge where the picture was already dark. Profiled, that is exactly what it did:
+       1.0 at the entry edge against 22.1 at mid-field. A shape that peaks in the
+       middle and fades on every side is a lobe, and a lobe floating in the light is
+       the artifact.
+       The fill is now a ramp along the light's axis: full at the entry edge, gone by
+       the far side. It fights the light's own rise, so the visible strength no longer
+       peaks in the middle — it is strongest where the shadow enters and tapers as it
+       reaches in, which is what a shadow lying across a lit surface does.
+       Opacity below one is safe under darken: the result interpolates between the
+       backdrop and the darker of the two, so it can still only ever darken. */
+    const lvS=DIRVEC[S.dir]||[0,-1];
+    const axL=Math.abs(lvS[0])*W+Math.abs(lvS[1])*H;
+    const fx=W/2-lvS[0]*axL*0.5, fy=H/2-lvS[1]*axL*0.5;   /* the dark end */
+    const tx=W/2+lvS[0]*axL*0.5, ty=H/2+lvS[1]*axL*0.5;   /* the light end */
+    const rampId=addLinear(fx,fy,tx,ty,
+      /* Holds more of its strength through the middle than the first version did.
+         Tapering too early made the shadow so faint that the differences between the
+         presets stopped being visible at all — the taper is there to stop the crown
+         reading as a lobe, not to erase it. */
+      `<stop stop-color="${tone}" stop-opacity="1"/>`+
+      `<stop offset="0.45" stop-color="${tone}" stop-opacity="0.88"/>`+
+      `<stop offset="0.80" stop-color="${tone}" stop-opacity="0.34"/>`+
+      `<stop offset="1" stop-color="${tone}" stop-opacity="0"/>`);
     /* outer ring then inner ring reversed, filled even-odd: exactly the bites */
-    const d0=toPath(rectPts)+toPath(inner.slice().reverse());
+    const d0=toPath(inner.outer||rectPts)+toPath(inner.slice().reverse());
     /* Blended with DARKEN, which takes the lower of the two values per channel.
        Two constraints have to hold at once and only this satisfies both:
        - multiply made the shadow invent a black the palette does not contain, since
@@ -1903,7 +2001,7 @@ ${envelope(ramp,o=>1-crossFade(o))}
        Darken cannot go above what is underneath, so it never adds light, and cannot
        go below the tone it is given, so the palette's ground is the deepest it
        reaches. */
-    body.push(`<g filter="url(#${sfid})" style="mix-blend-mode:darken">\n<path d="${d0}" fill-rule="evenodd" style="mix-blend-mode:darken" fill="${tone}"/>\n</g>`);
+    body.push(`<g filter="url(#${sfid})" style="mix-blend-mode:darken">\n<path d="${d0}" fill-rule="evenodd" style="mix-blend-mode:darken" fill="url(#${rampId})"/>\n</g>`);
   }
 
   let grain='';
