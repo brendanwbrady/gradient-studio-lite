@@ -225,11 +225,14 @@
       <button class="phead" type="button" aria-expanded="false"><span>Field</span><i class="caret"></i></button>
       <div class="pbody">
             <div class="chips" id="forms" style="margin-bottom:12px"></div>
+      <div class="sublabel">Type</div>
+      <div class="chips" id="fieldTypes" style="margin-bottom:12px"></div>
       <div class="row" data-ctrl="width"><label>Width</label></div>
       <div class="row" data-ctrl="height"><label>Height</label></div>
       <div class="row" data-ctrl="offsetX"><label>Offset X</label></div>
       <div class="row" data-ctrl="offsetY"><label>Offset Y</label></div>
       <div class="row" data-ctrl="blur"><label>Blur</label></div>
+      <div class="row" data-ctrl="roundness"><label>Roundness</label></div>
       <div class="glabel" style="margin:16px 0 8px">Shadow</div>
       <div class="sublabel">Shape</div>
       <div class="chips" id="shadowShapes" style="margin-bottom:2px"></div>
@@ -511,6 +514,26 @@ const SHADOWS=[
   ['fray','Fray'],       /* many shallow bites, a ragged edge */
   ['drift','Drift']      /* uneven: one dominant, others incidental */
 ];
+/* The five shapes a gradient can take, as recipes rather than modes. Named for the
+   outcome — what the light does with the frame — because that is how they get asked
+   for. Vignette is the only one that changes the field's outline; the rest are the same
+   rectangle at different sizes and offsets. */
+const TYPES=[
+  {n:'Field',      d:'light inset on every side, dark all round',
+   s:{form:'field',roundness:0,width:0.86,height:0.76,offsetX:0,offsetY:0,blur:0.06,erodeDepth:0,dir:'up'}},
+  /* Sat lower in the frame so the dark closes over the top as well as the sides —
+     an arch rather than a rectangle with soft corners. */
+  {n:'Vignette',   d:'an arch of light, dark closing over the top and sides',
+   s:{form:'field',roundness:0.62,width:0.92,height:0.82,offsetX:0,offsetY:0.06,blur:0.10,erodeDepth:0,dir:'up'}},
+  {n:'Full bleed', d:'light runs off every edge, no border at all',
+   s:{form:'field',roundness:0,width:1.18,height:1.18,offsetX:0,offsetY:0,blur:0.08,erodeDepth:0,dir:'up'}},
+  {n:'Band',       d:'light held to one edge, dark opposite',
+   s:{form:'field',roundness:0,width:1.18,height:0.74,offsetX:0,offsetY:-0.04,blur:0.07,erodeDepth:0,dir:'up'}},
+  {n:'Corner',     d:'light gathered into one corner',
+   s:{form:'field',roundness:0,width:1.12,height:1.12,offsetX:-0.05,offsetY:-0.05,blur:0.09,erodeDepth:0,dir:'upright'}},
+  {n:'Shadowed',   d:'a shadow reaching in across the light',
+   s:{form:'field',roundness:0,width:1.12,height:1.00,offsetX:0,offsetY:0,blur:0.07,erodeDepth:0.22,erodeCount:2,erodeSpread:0.20,dir:'up'}}
+];
 const SHADOWPROFILE={
   /* count, width, depth are multipliers on the sliders; skew bends the bite so its
      two flanks differ; power shapes the falloff — below 1 broadens the belly. */
@@ -701,6 +724,7 @@ const S={
      slider is reached for. At the old default of 13% the bottom edge already
      carried a visible warp: measured, its wobble was 0.68 against 0.33 with the
      shadow off. Good in an output, wrong in a starting point. */
+  roundness:0,
   shadow:'swell', shadowSoft:0.7, erodeDepth:0, erodeCount:3, erodeSpread:0.16, seed:184,
   grain:0.12, grainSize:1, grainStyle:'neutral', texture:'grain',
   ref:[]
@@ -732,6 +756,10 @@ const CTRLS=[
   {id:'offsetX',  min:-0.06,max:0.06,step:0.005,scale:100,dec:0,unit:'%'},
   {id:'offsetY',  min:-0.06,max:0.06,step:0.005,scale:100,dec:0,unit:'%'},
   {id:'blur',     min:0.03,max:0.38,step:0.005,scale:100,dec:0,unit:'%'},
+  /* Corner roundness. At 0 the field is the rectangle it has always been and the
+     renderer takes the same fast path it always took; above 0 the corners are cut
+     back, at most to half the shorter side. */
+  {id:'roundness',min:0,   max:1,   step:0.01, scale:100,dec:0,unit:'%'},
   /* 30, not 40: past 30 the outline has eaten as far as it can and the last quarter
      of the slider produced no change at all — 14.79 at 30, 35 and 40 alike. */
   {id:'erodeDepth', min:0, max:0.30,step:0.005,scale:100,dec:0,unit:'%'},
@@ -875,6 +903,24 @@ function unitOutline(form,ar,rng){
     push(m*m*p0[0]+2*m*t*c[0]+t*t*p1[0], m*m*p0[1]+2*m*t*c[1]+t*t*p1[1]);}};
 
   if(form==='ellipse'){arc(0.5,0.5,0.5,0.5,Math.PI/2,Math.PI/2+Math.PI*2,140);return P;}
+
+  /* A rectangle with its corners taken off — the shape a real vignette has, where the
+     light falls away at the corners rather than turning a square angle. The radius is a
+     fraction of the shorter side, so it stays a rounded rectangle on any frame rather
+     than becoming an ellipse on a narrow one. */
+  if(form==='soft'){
+    const k=clamp(S.roundness==null?0.28:S.roundness,0,1)*0.5;
+    const r=k/Math.max(1,ar), rv=k;
+    push(r,0);push(1-r,0);
+    arc(1-r,rv,r,rv,-Math.PI/2,0,18);
+    push(1,1-rv);
+    arc(1-r,1-rv,r,rv,0,Math.PI/2,18);
+    push(r,1);
+    arc(r,1-rv,r,rv,Math.PI/2,Math.PI,18);
+    push(0,rv);
+    arc(r,rv,r,rv,Math.PI,Math.PI*1.5,18);
+    return P;
+  }
 
   if(form==='arch'){
     const vs=clamp(0.5*ar,0.12,0.72);
@@ -1299,7 +1345,7 @@ function fieldOutline(bx,amp,rng){
   const horiz=formHoriz();
   const uLen=horiz?bx.h:bx.w, vLen=horiz?bx.w:bx.h;
   const m=mapUnit(bx,formAxis());
-  const raw=unitOutline(S.form,uLen/vLen,rng).map(p=>m(p[0],p[1]));
+  const raw=unitOutline((S.form==='field'&&(S.roundness||0)>=0.01)?'soft':S.form,uLen/vLen,rng).map(p=>m(p[0],p[1]));
   const pts=resample(raw,320);
   if(amp<0.5)return pts;
   const wv=waveFn(rng);
@@ -1708,7 +1754,7 @@ ${envelope(ramp,o=>1-crossFade(o))}
   else {
     const pad=sd*3+motionPad;
     defs.push(blurFilter('filter0_f'+sfx,sd,bx.x-pad-amp,bx.y-pad-amp,bx.w+2*(pad+amp),bx.h+2*(pad+amp)));
-    if(!motion && amp<0.5 && S.form==='field'){
+    if(!motion && amp<0.5 && S.form==='field' && (S.roundness||0)<0.01){
       body.push(`<g filter="url(#filter0_f${sfx})">\n<rect x="${bx.x.toFixed(0)}" y="${bx.y.toFixed(0)}" width="${bx.w.toFixed(0)}" height="${bx.h.toFixed(0)}" fill="url(#paint0_linear${sfx})"/>\n</g>`);
     }else{
       const pts=fieldOutline(bx,amp,rng);
@@ -1930,7 +1976,11 @@ ${envelope(ramp,o=>1-crossFade(o))}
        outline's fine detail never reaches the picture: measured, halving the points
        changes the render by at most 2 levels, which is below the grain. It is a
        quarter of the exported file. */
-    const rectPts=resample(unitOutline('field',1,srng).map(p=>mapUnit(sbx,formAxis())(p[0],p[1])),160);
+    /* the shadow is cut from the same outline the field has, rounded corners and all;
+       leaving it square while the field was rounded put the ring slightly outside the
+       field at the corners, which measured as a level of light appearing where the
+       rule is none */
+    const rectPts=resample(unitOutline((S.roundness||0)>=0.01?'soft':'field',1,srng).map(p=>mapUnit(sbx,formAxis())(p[0],p[1])),160);
     const inner=erodedOutline(rectPts,sbx,srng);
     const soft=clamp(S.shadowSoft==null?0.5:S.shadowSoft,0,1);
     /* Floored well above the field's own blur, so the shadow is softer than the
@@ -2077,7 +2127,7 @@ let raf=null;
 const schedule=()=>{if(raf)cancelAnimationFrame(raf);raf=requestAnimationFrame(draw);};
 
 /* ---------- history ---------- */
-const KEYS=['frame','form','dir','colors','mid','falloff','exposure','sat','contrast','highlights','shadows','width','height','offsetX','offsetY','blur','shadow','shadowSoft','erodeDepth','erodeCount','erodeSpread','warpFreq','warpRand','seed','grain','grainSize','grainStyle','texture','ref'];
+const KEYS=['frame','form','dir','colors','mid','falloff','exposure','sat','contrast','highlights','shadows','width','height','offsetX','offsetY','blur','roundness','shadow','shadowSoft','erodeDepth','erodeCount','erodeSpread','warpFreq','warpRand','seed','grain','grainSize','grainStyle','texture','ref'];
 function snap(){const o={};KEYS.forEach(k=>o[k]=S[k]);return JSON.stringify(o);}
 const DEFAULT_SNAP=snap();
 let baseline=snap(), undoStack=[], redoStack=[];
@@ -2193,6 +2243,8 @@ $('randomize').onclick=()=>{
      preset does, because someone who uploaded a reference has been even more
      deliberate than someone who clicked a chip. */
   S.form='field';
+  /* rounded about a third of the time, and never all the way */
+  S.roundness=R()<0.66?0:R()*0.7;
   S.shadow=pick(SHADOWS)[0];
   S.erodeDepth=0.04+R()*0.22;
   S.erodeCount=1+Math.floor(R()*5);
@@ -2248,6 +2300,22 @@ function chips(el,items,get,set){
 function syncChips(){
   chips($('frames'),Object.keys(FRAMES).map(k=>[k,k]),()=>S.frame,v=>S.frame=v);
   chips($('shadowShapes'),SHADOWS,()=>S.shadow,v=>S.shadow=v);
+  /* TYPES are shortcuts, not modes. Each one sets the sliders that were going to be set
+     anyway — Width, Height, Offset, Blur, and for Vignette the outline's corners — and
+     then gets out of the way. Nothing downstream knows a type was used, so a type is a
+     starting point that can be adjusted like any other state rather than a mode that
+     has to be left. There is no "custom" chip for the same reason: moving a slider just
+     means the picture is no longer that type, and the chips unlight themselves. */
+  (function(){
+    const host=$('fieldTypes'); if(!host)return;
+    host.innerHTML='';
+    for(const t of TYPES){
+      const el=document.createElement('button');
+      el.type='button'; el.className='chip'; el.textContent=t.n; el.title=t.d;
+      el.onclick=()=>{ Object.assign(S,t.s); syncAll(); schedule(); commit(); };
+      host.appendChild(el);
+    }
+  })();
   chips($('dirs'),DIRS,()=>S.dir,v=>S.dir=v);
   const cur=S.colors.join();
   document.querySelectorAll('#palettes .chip, #palettesRooms .chip').forEach(c=>
