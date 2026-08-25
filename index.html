@@ -237,8 +237,6 @@
       <div class="row" data-ctrl="erodeCount"><label>Count</label></div>
       <div class="row" data-ctrl="erodeSpread"><label>Spread</label></div>
       <div class="row" data-ctrl="shadowSoft"><label>Softness</label></div>
-      <div class="sublabel">Enters from</div>
-      <div class="chips" id="erodeSides" style="margin-bottom:2px"></div>
       <div class="row">
         <label for="seedNum">Seed</label>
         <input type="number" class="num wide" id="seedNum" min="1" max="999" step="1">
@@ -698,7 +696,9 @@ const S={
      boundary and a wide field has less frame left to absorb it. The blur had to come
      down with the size. At 90 / 80 / 4 the output measures 0.88 by 0.56, covers
      43.4% and holds a 14.2 edge gap — the reference on every count. */
-  width:0.90, height:0.80, offsetX:0, offsetY:0, blur:0.04,
+  /* a little more air than before: 7% at the sides and 12% top and bottom, where it
+     was 5% and 10% */
+  width:0.86, height:0.76, offsetX:0, offsetY:0, blur:0.04,
 /* Warp opens at 6%, not 35%. The base gradient is a clean soft rectangle in the
      reference — its top edge wanders 1.7px — and at 35% ours wandered 10.4px, which
      the old 10% blur had been hiding. With the blur down to 4% to hold the frame
@@ -713,7 +713,7 @@ const S={
      slider is reached for. At the old default of 13% the bottom edge already
      carried a visible warp: measured, its wobble was 0.68 against 0.33 with the
      shadow off. Good in an output, wrong in a starting point. */
-  shadow:'swell', shadowSoft:0.7, erodeDepth:0, erodeCount:3, erodeSpread:0.16, erodeSides:'auto',  drift:0, seed:184,
+  shadow:'swell', shadowSoft:0.7, erodeDepth:0, erodeCount:3, erodeSpread:0.16, drift:0, seed:184,
   driftDir:'across',
   grain:0.12, grainSize:1, grainStyle:'neutral', texture:'grain',
   ref:[]
@@ -735,10 +735,15 @@ const CTRLS=[
   /* Both axes share one scale, and both run past 100%. At 100% the field fills
      the box the margins leave it; above that it grows past them, so a bleed can
      be dialled without also moving the margin. */
-  {id:'width',    min:0.12,max:2,   step:0.01, scale:100,dec:0,unit:'%'},
-  {id:'height',   min:0.12,max:2,   step:0.01, scale:100,dec:0,unit:'%'},
-  {id:'offsetX',  min:-0.5, max:0.5, step:0.005,scale:100,dec:0,unit:'%'},
-  {id:'offsetY',  min:-0.5, max:0.5, step:0.005,scale:100,dec:0,unit:'%'},
+  /* The field spans full bleed down to a margin a little wider than the default, and
+     no further. The old floor of 12% could strand a small gradient in the middle of a
+     large dark frame, and offsets of half the frame could push it off entirely. The
+     defaults leave 5% at the sides and 10% top and bottom; the tightest settings here
+     leave 9% and 13%, and the offsets can add 6% to one side. */
+  {id:'width',    min:0.78,max:1.20,step:0.01, scale:100,dec:0,unit:'%'},
+  {id:'height',   min:0.70,max:1.20,step:0.01, scale:100,dec:0,unit:'%'},
+  {id:'offsetX',  min:-0.06,max:0.06,step:0.005,scale:100,dec:0,unit:'%'},
+  {id:'offsetY',  min:-0.06,max:0.06,step:0.005,scale:100,dec:0,unit:'%'},
   {id:'blur',     min:0.03,max:0.38,step:0.005,scale:100,dec:0,unit:'%'},
   /* 30, not 40: past 30 the outline has eaten as far as it can and the last quarter
      of the slider produced no change at all — 14.79 at 30, 35 and 40 alike. */
@@ -766,10 +771,14 @@ const DIRVEC={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0],
    shadow to the frame more firmly but read as less like a shadow, and was reverted. */
 const SHADOWAWAY={up:'b',down:'t',left:'r',right:'l',
   upleft:'br',upright:'bl',downleft:'tr',downright:'tl'};
-function shadowSides(){
-  const v=S.erodeSides||'auto';
-  return v==='auto' ? (SHADOWAWAY[S.dir]||'b') : v;
-}
+/* A shadow always comes from the edge opposite the light. There used to be a control
+   for choosing the edges by hand, on the reasoning that a shadow the light would not
+   cast is sometimes what a composition wants. In practice it was the source of the
+   trouble: pick an edge the light is coming from and the shadow has nowhere dark to
+   start, so it surfaces in the middle of the lit field with nothing behind it — the
+   floating shape that took several rounds to chase. The rule now has no exceptions,
+   and the whole class of bad states goes with it. */
+function shadowSides(){ return SHADOWAWAY[S.dir]||'b'; }
 /* Shapes stay upright while the light rakes across them: a diagonal resolves to
    its nearer cardinal wherever something has to be oriented — an arch lit from the
    top left is still an arch, it is just lit from the corner. Only the light vector
@@ -808,10 +817,10 @@ function fieldBox(W,H){
      size against the frame; Offset X and Y move it. Anything margin used to do,
      including bleeding off an edge, is a size over 100% or an offset, and
      off-centre compositions are reachable now, which they were not. */
-  const wS=clamp(S.width,0.12,2), hS=clamp(S.height==null?0.82:S.height,0.12,2);
+  const wS=clamp(S.width,0.60,1.6), hS=clamp(S.height==null?0.82:S.height,0.60,1.6);
   const w=W*wS, h=H*hS;
-  const ox=clamp(S.offsetX==null?0:S.offsetX,-0.6,0.6)*W;
-  const oy=clamp(S.offsetY==null?0:S.offsetY,-0.6,0.6)*H;
+  const ox=clamp(S.offsetX==null?0:S.offsetX,-0.12,0.12)*W;
+  const oy=clamp(S.offsetY==null?0:S.offsetY,-0.12,0.12)*H;
   /* a small automatic settle toward the light, so the ramp always has room to run
      without the user having to dial an offset to get it */
   /* the light vector comes from DIRVEC here, not from the render's tilted axis:
@@ -2092,7 +2101,7 @@ let raf=null;
 const schedule=()=>{if(raf)cancelAnimationFrame(raf);raf=requestAnimationFrame(draw);};
 
 /* ---------- history ---------- */
-const KEYS=['frame','form','dir','colors','mid','falloff','exposure','sat','contrast','highlights','shadows','width','height','offsetX','offsetY','blur','shadow','shadowSoft','erodeDepth','erodeCount','erodeSpread','erodeSides','warpFreq','warpRand','drift','driftDir','seed','grain','grainSize','grainStyle','texture','ref'];
+const KEYS=['frame','form','dir','colors','mid','falloff','exposure','sat','contrast','highlights','shadows','width','height','offsetX','offsetY','blur','shadow','shadowSoft','erodeDepth','erodeCount','erodeSpread','warpFreq','warpRand','drift','driftDir','seed','grain','grainSize','grainStyle','texture','ref'];
 function snap(){const o={};KEYS.forEach(k=>o[k]=S[k]);return JSON.stringify(o);}
 const DEFAULT_SNAP=snap();
 let baseline=snap(), undoStack=[], redoStack=[];
@@ -2212,7 +2221,7 @@ $('randomize').onclick=()=>{
   S.erodeDepth=0.04+R()*0.22;
   S.erodeCount=1+Math.floor(R()*5);
   S.erodeSpread=0.08+R()*0.24;
-  S.erodeSides=pick(['auto','auto','auto','b','bl','br','t','l','r']);
+
   S.dir=pick(DIRS)[0];
   /* Size and position, on their own scales. The margin roll that used to live here
      was renamed onto Width and Height when margin became offset, which fed
@@ -2220,11 +2229,17 @@ $('randomize').onclick=()=>{
      of them negative. Width and Height sit around the 76% default; the axes are
      rolled separately so a roll can be a band or a column, but they stay close
      enough often enough that most rolls read as a field. */
-  const wBase=0.58+R()*0.46;
-  S.width=wBase*(0.85+R()*0.3);
-  S.height=wBase*(0.85+R()*0.3);
-  S.offsetX=(R()-0.5)*0.30;
-  S.offsetY=(R()-0.5)*0.30;
+  /* Rolled inside the new range, so a roll is always somewhere between full bleed and
+     a modest margin — never a small field adrift in the dark. */
+  /* Weighted toward the inset half of the range rather than sitting in the middle of
+     it, so a typical roll shows a margin rather than filling the frame. Full bleed is
+     still reachable — the top of the range is untouched — it is just no longer where
+     most rolls land. */
+  const wBase=0.76+Math.pow(R(),1.35)*0.42;
+  S.width=clamp(wBase*(0.94+R()*0.14),0.78,1.20);
+  S.height=clamp(wBase*(0.90+R()*0.16),0.70,1.20);
+  S.offsetX=(R()-0.5)*0.09;
+  S.offsetY=(R()-0.5)*0.09;
   S.blur=0.06+R()*0.10;
   S.organic=R()*0.85;
   S.drift=R()<0.6?0:R()*0.4;
@@ -2263,32 +2278,6 @@ function chips(el,items,get,set){
 function syncChips(){
   chips($('frames'),Object.keys(FRAMES).map(k=>[k,k]),()=>S.frame,v=>S.frame=v);
   chips($('shadowShapes'),SHADOWS,()=>S.shadow,v=>S.shadow=v);
-  /* Which edges the shadow enters from. Multi-select, because a shadow reaching in
-     from two sides at once is the commonest thing the references show. */
-  (function(){
-    const host=$('erodeSides'); if(!host)return;
-    const opts=[['auto','Follow light'],['t','Top'],['r','Right'],['b','Bottom'],['l','Left']];
-    host.innerHTML='';
-    for(const [k,label] of opts){
-      const el=document.createElement('button');
-      el.type='button'; el.className='chip'; el.textContent=label;
-      const cur=S.erodeSides||'auto';
-      el.setAttribute('aria-pressed', k==='auto' ? (cur==='auto'?'true':'false')
-                                                 : (cur!=='auto' && cur.indexOf(k)>=0?'true':'false'));
-      el.onclick=()=>{
-        const c=S.erodeSides||'auto';
-        if(k==='auto'){ S.erodeSides='auto'; }
-        else{
-          /* the first named side leaves Follow light rather than adding to it */
-          const base=c==='auto'?'':c;
-          const next=base.indexOf(k)>=0?base.replace(k,''):base+k;
-          S.erodeSides=next.length?next:'auto';
-        }
-        syncChips(); schedule(); commit();
-      };
-      host.appendChild(el);
-    }
-  })();
   chips($('dirs'),DIRS,()=>S.dir,v=>S.dir=v);
   chips($('drifts'),DRIFTDIRS,()=>S.driftDir,v=>S.driftDir=v);
   const cur=S.colors.join();
