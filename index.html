@@ -627,10 +627,15 @@ const PALETTES=[
      the light stop was already right, so the whole difference was the depth
      beneath it. */
   /* highlight saturation 46% to 65%, luminance held */
-  {g:'space',n:'Gold Bar',    c:['#1D0A01','#391C08','#D8A346']},
+  /* Midtone lifted to sit 43% of the way from ground to light, which is where the
+     two palettes that arch nicely already sat — Member's Bar at 45%, Dining Room at
+     40%, against these two at 11 to 13%. The arching comes from the shadow having a
+     long mid-range to cut across; a midtone hugging the ground gives it nothing to
+     work in. Hue and saturation are unchanged, only the depth. */
+  {g:'space',n:'Gold Bar',    c:['#1D0A01','#8B4414','#D8A346']},
   {g:'space',n:"Member's Bar",c:['#2C060D','#6C5156','#BCB091']},
   /* darkened and pushed about a fifth further in saturation */
-  {g:'space',n:'Rossa Lounge',c:['#290907','#550D09','#CA6C36']}
+  {g:'space',n:'Rossa Lounge',c:['#290907','#BC1D14','#CA6C36']}
   /* Palettes sit at roughly ground x0.62, mid and light x0.80 of the values COJE
      supplied — brought back up from the x0.41 / x0.45 / x0.38 of the dark rounds,
      but not all the way to the originals. Deep grounds with luminous cores, which
@@ -705,7 +710,7 @@ const S={
      one. */
   shadow:'swell', shadowSoft:0.7, erodeDepth:0.13, erodeCount:3, erodeSpread:0.16, erodeSides:'auto',  drift:0, seed:184,
   driftDir:'across',
-  grain:0.07, grainSize:1, grainStyle:'neutral', texture:'grain',
+  grain:0.12, grainSize:1, grainStyle:'neutral', texture:'grain',
   ref:[]
 };
 
@@ -2481,13 +2486,43 @@ $('copySvg').onclick=async()=>{
    painted grain onto the canvas separately because it appeared to vanish on
    export — that was the noise sitting at the pixel sampling limit, not the
    filter being dropped, and it is fixed at the source now. */
+/* TAGGING THE PNG AS sRGB.
+   A canvas PNG carries no colour profile at all — checked, the export had no sRGB,
+   iCCP, gAMA or cHRM chunk. Anything reading it then has to guess, and Figma's guess
+   and the browser's are not the same, which is why the same gradient looked darker
+   once placed. The pixels were never wrong; nobody had said what they meant.
+   An sRGB chunk is fifteen bytes and says it outright. It goes between IHDR and the
+   first IDAT, which is where a decoder expects it. */
+const CRCT=(()=>{const t=new Uint32Array(256);
+  for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);t[n]=c>>>0;}
+  return t;})();
+function crc32(bytes){let c=0xFFFFFFFF;for(let i=0;i<bytes.length;i++)c=CRCT[(c^bytes[i])&0xFF]^(c>>>8);return (c^0xFFFFFFFF)>>>0;}
+async function tagSRGB(blob){
+  try{
+    const buf=new Uint8Array(await blob.arrayBuffer());
+    if(!(buf[0]===0x89&&buf[1]===0x50))return blob;            /* not a PNG, leave it */
+    /* walk to the end of IHDR */
+    let p=8;
+    const len=(buf[p]<<24|buf[p+1]<<16|buf[p+2]<<8|buf[p+3])>>>0;
+    p+=12+len;
+    const body=new Uint8Array([0x73,0x52,0x47,0x42,0x00]);      /* 'sRGB', intent 0 */
+    const crc=crc32(body);
+    const chunk=new Uint8Array(13);
+    chunk[0]=0;chunk[1]=0;chunk[2]=0;chunk[3]=1;
+    chunk.set(body,4);
+    chunk[9]=(crc>>>24)&255;chunk[10]=(crc>>>16)&255;chunk[11]=(crc>>>8)&255;chunk[12]=crc&255;
+    const out=new Uint8Array(buf.length+chunk.length);
+    out.set(buf.subarray(0,p),0); out.set(chunk,p); out.set(buf.subarray(p),p+chunk.length);
+    return new Blob([out],{type:'image/png'});
+  }catch(e){ return blob; }                                     /* tagging is a nicety, never a blocker */
+}
 function exportPNG(mult){
   const [W,H]=FRAMES[S.frame];
   const img=new Image();
   img.onload=()=>{
     const c=document.createElement('canvas');c.width=W*mult;c.height=H*mult;
     c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-    c.toBlob(b=>{download(b,stamp()+(mult>1?'@'+mult+'x':'')+'.png');toast('PNG saved · '+c.width+'×'+c.height);},'image/png');
+    c.toBlob(async b=>{const t=await tagSRGB(b);download(t,stamp()+(mult>1?'@'+mult+'x':'')+'.png');toast('PNG saved · '+c.width+'×'+c.height);},'image/png');
   };
   img.onerror=()=>toast('PNG export failed');
   img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(buildSVG());
@@ -2502,7 +2537,8 @@ function copyPNG(mult){
   img.onload=()=>{
     const c=document.createElement('canvas');c.width=W*mult;c.height=H*mult;
     c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-    c.toBlob(async b=>{
+    c.toBlob(async b0=>{
+      const b=await tagSRGB(b0);
       try{
         await navigator.clipboard.write([new ClipboardItem({'image/png':b})]);
         toast('PNG copied · '+c.width+'×'+c.height);
