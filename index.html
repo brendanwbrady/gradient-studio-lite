@@ -257,15 +257,6 @@
 
 
     <div class="group" data-panel>
-      <button class="phead" type="button" aria-expanded="false"><span>Motion</span><i class="caret"></i></button>
-      <div class="pbody">
-      <div class="row" data-ctrl="drift"><label>Drift</label></div>
-      <div class="glabel" style="margin-bottom:8px">Direction</div>
-      <div class="chips" id="drifts"></div>
-      </div>
-    </div>
-
-    <div class="group" data-panel>
       <button class="phead" type="button" aria-expanded="false"><span>Finish</span><i class="caret"></i></button>
       <div class="pbody">
       <div class="row" data-ctrl="exposure"><label>Exposure</label></div>
@@ -554,7 +545,6 @@ const ICON_CHANDELIER=[[[1.373,0.252],[1.361,0.279],[1.332,0.303],[1.308,0.31],[
 /* Spin is gone in Lite: on a soft field it reads as a smudge rather than as
    movement, and none of COJE's references show anything like it. */
 const FIELDDIRS=[['light','Follow light'],['top','Top'],['right','Right'],['bottom','Bottom'],['left','Left']];
-const DRIFTDIRS=[['across','Across'],['along','Along']];
 
 const PALETTES=[
   /* Read from the five gradients currently in the deck rather than carried forward.
@@ -696,9 +686,7 @@ const S={
      boundary and a wide field has less frame left to absorb it. The blur had to come
      down with the size. At 90 / 80 / 4 the output measures 0.88 by 0.56, covers
      43.4% and holds a 14.2 edge gap — the reference on every count. */
-  /* a little more air than before: 7% at the sides and 12% top and bottom, where it
-     was 5% and 10% */
-  width:0.86, height:0.76, offsetX:0, offsetY:0, blur:0.04,
+  width:0.90, height:0.80, offsetX:0, offsetY:0, blur:0.04,
 /* Warp opens at 6%, not 35%. The base gradient is a clean soft rectangle in the
      reference — its top edge wanders 1.7px — and at 35% ours wandered 10.4px, which
      the old 10% blur had been hiding. With the blur down to 4% to hold the frame
@@ -713,8 +701,7 @@ const S={
      slider is reached for. At the old default of 13% the bottom edge already
      carried a visible warp: measured, its wobble was 0.68 against 0.33 with the
      shadow off. Good in an output, wrong in a starting point. */
-  shadow:'swell', shadowSoft:0.7, erodeDepth:0, erodeCount:3, erodeSpread:0.16, drift:0, seed:184,
-  driftDir:'across',
+  shadow:'swell', shadowSoft:0.7, erodeDepth:0, erodeCount:3, erodeSpread:0.16, seed:184,
   grain:0.12, grainSize:1, grainStyle:'neutral', texture:'grain',
   ref:[]
 };
@@ -740,8 +727,8 @@ const CTRLS=[
      large dark frame, and offsets of half the frame could push it off entirely. The
      defaults leave 5% at the sides and 10% top and bottom; the tightest settings here
      leave 9% and 13%, and the offsets can add 6% to one side. */
-  {id:'width',    min:0.78,max:1.20,step:0.01, scale:100,dec:0,unit:'%'},
-  {id:'height',   min:0.70,max:1.20,step:0.01, scale:100,dec:0,unit:'%'},
+  {id:'width',    min:0.82,max:1.25,step:0.01, scale:100,dec:0,unit:'%'},
+  {id:'height',   min:0.74,max:1.25,step:0.01, scale:100,dec:0,unit:'%'},
   {id:'offsetX',  min:-0.06,max:0.06,step:0.005,scale:100,dec:0,unit:'%'},
   {id:'offsetY',  min:-0.06,max:0.06,step:0.005,scale:100,dec:0,unit:'%'},
   {id:'blur',     min:0.03,max:0.38,step:0.005,scale:100,dec:0,unit:'%'},
@@ -753,7 +740,6 @@ const CTRLS=[
      the readings were identical at 28, 34 and 40. */
   {id:'erodeSpread',min:0.04,max:0.28,step:0.005,scale:100,dec:0,unit:'%'},
   {id:'shadowSoft', min:0,   max:1,   step:0.01, scale:100,dec:0,unit:'%'},
-  {id:'drift',    min:0,   max:1,   step:0.01, scale:100,dec:0,unit:'%'},
   {id:'grain',    min:0,   max:0.3, step:0.005,scale:100,dec:0,unit:'%'},
   {id:'grainSize',min:1,   max:4,   step:0.05, scale:1,  dec:2,unit:''}
 ];
@@ -1568,31 +1554,21 @@ ${envelope(ramp,o=>1-crossFade(o))}
      blur here stays a single symmetric value and every shape is emitted with its
      coordinates already baked in — no transform attributes, no nested groups —
      because those are the two things an importer is most likely to drop. */
-  const motion=S.drift>0.01;
+  /* MOTION IS REMOVED.
+     Drift built its trail by stacking eleven offset copies of the field, so any output
+     carrying it came out around five times heavier with five times the blurred layers
+     — 66 KB and 25 layers against 14 KB and 5 — and those layers are exactly what a
+     PDF export has to rasterise. Randomize reached for it on better than a third of
+     rolls, so decks were picking it up without anyone choosing it. In a still frame it
+     read as a smear rather than as travel.
+     The copy machinery is left in place but held at a single identity copy, which is
+     the code path drift=0 always took and the one every other feature is tested
+     against. Nothing else in the renderer had to move. */
+  const motion=false;
   const lightIsHoriz=dirHoriz();
-  const smearHoriz=(S.driftDir==='across')?!lightIsHoriz:lightIsHoriz;
-  const reach=D*0.42*S.drift;
-  let COPIES=[{sc:1,tx:0,ty:0,op:1}];
-  if(motion){
-    COPIES=[];
-    if(S.driftDir==='spin'){
-      /* rotational blur: the shape is sampled through a small arc about the
-         frame centre, so everything smears on a curve rather than outward */
-      const n=9+Math.round(S.drift*9), sweep=S.drift*30;
-      for(let k=0;k<n;k++){
-        const t=n>1?(k/(n-1))*2-1:0;
-        COPIES.push({sc:1,tx:0,ty:0,rot:t*sweep/2,
-                     op:Math.abs(t)<1e-6?1:0.32+0.44*(1-Math.abs(t))});
-      }
-    }else{
-      const n=9+Math.round(S.drift*8);
-      for(let k=0;k<n;k++){
-        const t=n>1?(k/(n-1))*2-1:0, off=t*reach;
-        COPIES.push({sc:1,tx:smearHoriz?off:0,ty:smearHoriz?0:off,
-                     op:Math.abs(t)<1e-6?1:0.34+0.42*(1-Math.abs(t))});
-      }
-    }
-  }
+  const smearHoriz=lightIsHoriz;
+  const reach=0;
+  const COPIES=[{sc:1,tx:0,ty:0,op:1}];   /* one copy; the trail is gone */
   const ORDER=COPIES.slice().sort((a,b)=>a.op-b.op);   /* faintest first */
   /* Motion copies must AVERAGE, not stack. Painted source-over at their own
      weights, fifteen copies of the same shape reach full alpha wherever they
@@ -1606,7 +1582,7 @@ ${envelope(ramp,o=>1-crossFade(o))}
     let cum=0;
     for(const cp of ORDER){ cum+=cp.op; cp.aop=cp.op/cum; }
   }
-  const motionPad=motion?(S.driftDir==='spin'?Math.hypot(W,H)/2*Math.sin(S.drift*34*Math.PI/360)*1.25:reach):0;
+  const motionPad=0;
 
   const bake=(pts,cp,ox,oy)=>{
     const a=(cp.rot||0)*Math.PI/180, ca=Math.cos(a), sa=Math.sin(a);
@@ -2101,7 +2077,7 @@ let raf=null;
 const schedule=()=>{if(raf)cancelAnimationFrame(raf);raf=requestAnimationFrame(draw);};
 
 /* ---------- history ---------- */
-const KEYS=['frame','form','dir','colors','mid','falloff','exposure','sat','contrast','highlights','shadows','width','height','offsetX','offsetY','blur','shadow','shadowSoft','erodeDepth','erodeCount','erodeSpread','warpFreq','warpRand','drift','driftDir','seed','grain','grainSize','grainStyle','texture','ref'];
+const KEYS=['frame','form','dir','colors','mid','falloff','exposure','sat','contrast','highlights','shadows','width','height','offsetX','offsetY','blur','shadow','shadowSoft','erodeDepth','erodeCount','erodeSpread','warpFreq','warpRand','seed','grain','grainSize','grainStyle','texture','ref'];
 function snap(){const o={};KEYS.forEach(k=>o[k]=S[k]);return JSON.stringify(o);}
 const DEFAULT_SNAP=snap();
 let baseline=snap(), undoStack=[], redoStack=[];
@@ -2196,7 +2172,7 @@ document.querySelectorAll('.phead').forEach(h=>{
 $('undo').onclick=undo;
 $('redo').onclick=redo;
 
-/* Randomize rolls composition, light and motion. Ranges are bounded so the result
+/* Randomize rolls composition and light. Ranges are bounded so the result
    lands in family rather than anywhere.
    Deliberately HELD, never rolled:
      the palette — whether a preset or a sampled image
@@ -2231,19 +2207,13 @@ $('randomize').onclick=()=>{
      enough often enough that most rolls read as a field. */
   /* Rolled inside the new range, so a roll is always somewhere between full bleed and
      a modest margin — never a small field adrift in the dark. */
-  /* Weighted toward the inset half of the range rather than sitting in the middle of
-     it, so a typical roll shows a margin rather than filling the frame. Full bleed is
-     still reachable — the top of the range is untouched — it is just no longer where
-     most rolls land. */
-  const wBase=0.76+Math.pow(R(),1.35)*0.42;
-  S.width=clamp(wBase*(0.94+R()*0.14),0.78,1.20);
-  S.height=clamp(wBase*(0.90+R()*0.16),0.70,1.20);
+  const wBase=0.86+R()*0.36;
+  S.width=clamp(wBase*(0.94+R()*0.14),0.82,1.25);
+  S.height=clamp(wBase*(0.90+R()*0.16),0.74,1.25);
   S.offsetX=(R()-0.5)*0.09;
   S.offsetY=(R()-0.5)*0.09;
   S.blur=0.06+R()*0.10;
   S.organic=R()*0.85;
-  S.drift=R()<0.6?0:R()*0.4;
-  S.driftDir=pick(['across','across','along']);
   S.falloff=R()*0.85;
   S.mid=0.36+R()*0.28;
   S.seed=1+Math.floor(R()*999);
@@ -2279,7 +2249,6 @@ function syncChips(){
   chips($('frames'),Object.keys(FRAMES).map(k=>[k,k]),()=>S.frame,v=>S.frame=v);
   chips($('shadowShapes'),SHADOWS,()=>S.shadow,v=>S.shadow=v);
   chips($('dirs'),DIRS,()=>S.dir,v=>S.dir=v);
-  chips($('drifts'),DRIFTDIRS,()=>S.driftDir,v=>S.driftDir=v);
   const cur=S.colors.join();
   document.querySelectorAll('#palettes .chip, #palettesRooms .chip').forEach(c=>
     c.setAttribute('aria-pressed', c.dataset.cols===cur?'true':'false'));
