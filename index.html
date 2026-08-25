@@ -708,7 +708,12 @@ const S={
   /* The default opens as the approved gradient with a hint in it, not with a
      shadow across half the frame — 20% was a demonstration value, not a resting
      one. */
-  shadow:'swell', shadowSoft:0.7, erodeDepth:0.13, erodeCount:3, erodeSpread:0.16, erodeSides:'auto',  drift:0, seed:184,
+  /* The base opens with NO shadow. It is the approved rectangle and nothing else —
+     a clean start to work from, with the shadow arriving on a roll or when the
+     slider is reached for. At the old default of 13% the bottom edge already
+     carried a visible warp: measured, its wobble was 0.68 against 0.33 with the
+     shadow off. Good in an output, wrong in a starting point. */
+  shadow:'swell', shadowSoft:0.7, erodeDepth:0, erodeCount:3, erodeSpread:0.16, erodeSides:'auto',  drift:0, seed:184,
   driftDir:'across',
   grain:0.12, grainSize:1, grainStyle:'neutral', texture:'grain',
   ref:[]
