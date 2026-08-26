@@ -575,7 +575,18 @@ const TYPES=[
       the seed would move the wedge somewhere else without making it less likely.
       Taller again: 120, with the offset at 18 holding the top edge at 3% of the frame
       and the bottom running 23% past it. */
-   s:{form:'field',roundness:0.12,taper:0.28,width:1.20,height:1.20,offsetX:0,offsetY:0.18,blur:0.085,
+   /* Width and taper do different jobs here and it is worth keeping them apart. Taper
+      sets how much narrower the lit end is than the dark one — the angle of the sides,
+      which is what reads as the shape. Width sets where both ends sit relative to the
+      frame, which is what reads as border. Taper is held at 20, the value that looked
+      right; width comes back from 120 to 112, which restores the border without
+      steepening anything.
+      The lit end goes from 96% of the frame wide to 90%, so the corner border is 5.2%
+      down each side against 2.0%. The dark end still runs 6% off each side, so the
+      bleed is intact. And the sides now cross the frame around halfway down rather
+      than a quarter, so the border runs over the top half of the picture instead of
+      just the corners. */
+   s:{form:'field',roundness:0.12,taper:0.20,width:1.12,height:1.20,offsetX:0,offsetY:0.18,blur:0.085,
       organic:0.14,warpFreq:0.28,warpRand:0.30, mid:0.40,falloff:0.52,
       shadow:'drift',  erodeDepth:0.16,erodeCount:2,erodeSpread:0.18,shadowSoft:0.70,seed:311,dir:'up'}},
 
@@ -587,8 +598,13 @@ const TYPES=[
       shadow:'swell',  erodeDepth:0.12,erodeCount:1,erodeSpread:0.24,shadowSoft:0.78,seed:742,dir:'up'}},
 
   {n:'Wash',    d:'light running off every edge, no border at all',
+   /* Darker, by shrinking the light rather than by dimming it. Falloff 55 to 38 cuts
+      the fully-lit band from 214px to 169px on a 1080 frame, and the middle stop moves
+      from 50 to 60 — further along the ramp toward the light, which leaves more of the
+      picture in the stretch between ground and middle. The field still runs off every
+      edge at 124%, so it is the same borderless type; there is simply less of it lit. */
    s:{form:'field',roundness:0,   taper:0,width:1.24,height:1.24,offsetX:-0.03,offsetY:0.02,blur:0.07,
-      organic:0.75,warpFreq:0.18,warpRand:0.70, mid:0.50,falloff:0.55,
+      organic:0.75,warpFreq:0.18,warpRand:0.70, mid:0.60,falloff:0.38,
       shadow:'fray',   erodeDepth:0.08,erodeCount:4,erodeSpread:0.12,shadowSoft:0.72,seed:118,dir:'upleft'}},
 
   /* WHY THIS ONE READ MUDDY. The light stop is not reached anywhere in the picture,
@@ -607,8 +623,12 @@ const TYPES=[
      is not weighted so far toward the ground. It is still the type where light is
      held to one edge; it just reaches the colour it is meant to reach. */
   {n:'Horizon', d:'light held to one edge, dark opposite',
-   s:{form:'field',roundness:0,   taper:0,width:1.24,height:0.78,offsetX:0.02,offsetY:-0.02,blur:0.085,
-      organic:0.45,warpFreq:0.36,warpRand:0.60, mid:0.42,falloff:0.76,
+   /* Down a step (offset -2 to +2) and brighter again by the same lever as before:
+      falloff 76 to 84 widens the fully-lit band and blur 8.5 to 8 narrows what
+      averages it, taking the band from 3.7 blur radii to 4.4 — level with Alcove.
+      Nothing here touches the palette; it is the same three colours reaching further. */
+   s:{form:'field',roundness:0,   taper:0,width:1.24,height:0.78,offsetX:0.02,offsetY:0.02,blur:0.08,
+      organic:0.45,warpFreq:0.36,warpRand:0.60, mid:0.44,falloff:0.84,
       shadow:'scallop',erodeDepth:0.16,erodeCount:3,erodeSpread:0.20,shadowSoft:0.68,seed:906,dir:'up'}}
 ];
 const SHADOWPROFILE={
