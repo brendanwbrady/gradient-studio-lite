@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Gradient Studio Lite — Types C — Pilot</title>
+<title>Gradient Studio Lite — Types D — Pilot</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Geist+Mono:wght@400;500&display=swap">
@@ -520,6 +520,16 @@ const SHADOWS=[
    outcome — what the light does with the frame — because that is how they get asked
    for. Vignette is the only one that changes the field's outline; the rest are the same
    rectangle at different sizes and offsets. */
+  /* SET D adjusts four of the six on the way the grid reads, not on how they work.
+     Alcove: warp down from 50 to 28 and blur up from 6 to 10, so the inset edge is
+       light falling away rather than a wandering outline. Its darker border comes
+       from three things together — the box tightened to the narrowest the width
+       control allows, the middle stop moved down the ramp so the ground arrives
+       sooner, and falloff up so the ground holds its own depth once it does.
+     Arch, Lantern and Curtain: blur up (13 to 18, 9 to 14, 8 to 13). Warp is
+       unchanged on all three, so each loses some of its wander to the larger blur —
+       Arch now travels about a fifth of its blur radius, which is the softest in the
+       set by some way and is what an arch of light wants. */
 const TYPES=[
   /* SET C. These six exist to SHOW a client the shapes the tool makes — six
      recognisable buckets on a slide, not six starting points to work off. That is
@@ -543,14 +553,14 @@ const TYPES=[
          matched across the set.
      Seeds are unchanged from set A so anything that survived stays recognisable. */
   {n:'Alcove',  d:'light inset on every side, dark closing all round',
-   s:{form:'field',roundness:0.12,width:0.84,height:0.74,offsetX:-0.02,offsetY:0.02,blur:0.06,
-      organic:0.50,warpFreq:0.28,warpRand:0.55, mid:0.44,falloff:0.38,
+   s:{form:'field',roundness:0.12,width:0.82,height:0.74,offsetX:-0.02,offsetY:0.02,blur:0.10,
+      organic:0.28,warpFreq:0.28,warpRand:0.55, mid:0.40,falloff:0.52,
       shadow:'drift',  erodeDepth:0.16,erodeCount:2,erodeSpread:0.18,shadowSoft:0.70,seed:311,dir:'up'}},
 
   /* The most blur in the set, and the roundest. Falloff low so the light spreads
      through the arch rather than sitting at its top edge. */
   {n:'Arch',    d:'an arch of light, dark closing over the top and sides',
-   s:{form:'field',roundness:0.85,width:0.94,height:0.84,offsetX:0.01,offsetY:0.06,blur:0.13,
+   s:{form:'field',roundness:0.85,width:0.94,height:0.84,offsetX:0.01,offsetY:0.06,blur:0.18,
       organic:0.55,warpFreq:0.24,warpRand:0.45, mid:0.52,falloff:0.30,
       shadow:'swell',  erodeDepth:0.12,erodeCount:1,erodeSpread:0.24,shadowSoft:0.78,seed:742,dir:'up'}},
 
@@ -573,7 +583,7 @@ const TYPES=[
   /* Pushed hard into its corner — both offsets at the limit, the mid high so the
      light gathers instead of spreading, and a wedge shadow raking away from it. */
   {n:'Lantern', d:'light gathered into one corner',
-   s:{form:'field',roundness:0.34,width:1.06,height:1.02,offsetX:-0.06,offsetY:-0.06,blur:0.09,
+   s:{form:'field',roundness:0.34,width:1.06,height:1.02,offsetX:-0.06,offsetY:-0.06,blur:0.14,
       organic:0.65,warpFreq:0.44,warpRand:0.78, mid:0.56,falloff:0.50,
       shadow:'wedge',  erodeDepth:0.22,erodeCount:2,erodeSpread:0.17,shadowSoft:0.70,seed:455,dir:'upright'}},
 
@@ -587,7 +597,7 @@ const TYPES=[
      deep mass drawn in from a corner, at the depth ceiling, spread wide, and the
      least soft edge in the set so it reads as a drawn thing rather than a fade. */
   {n:'Curtain', d:'a dark mass drawn in from one corner, closing over the light',
-   s:{form:'field',roundness:0.04,width:1.16,height:1.10,offsetX:0.02,offsetY:0.01,blur:0.08,
+   s:{form:'field',roundness:0.04,width:1.16,height:1.10,offsetX:0.02,offsetY:0.01,blur:0.13,
       organic:0.60,warpFreq:0.26,warpRand:0.85, mid:0.46,falloff:0.42,
       shadow:'swell',  erodeDepth:0.30,erodeCount:1,erodeSpread:0.27,shadowSoft:0.55,seed:203,dir:'downright'}}
 ];
