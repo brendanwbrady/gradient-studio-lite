@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Gradient Studio Lite — Types D — Pilot</title>
+<title>Gradient Studio Lite — Gradient Studio Lite — Pilot</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Geist+Mono:wght@400;500&display=swap">
@@ -75,7 +75,13 @@
   /* a label for a chip group nested inside a titled block — reads as one of the
      block's settings rather than as a new heading, and lets the chips take a
      full-width row so they never clip against the panel edge */
-  .sublabel{font-size:11px;color:var(--muted);margin:10px 0 7px}
+  /* Same mono treatment as .glabel — it was the only label in the panel set in the
+     UI sans, which read as a different kind of thing rather than as a level below.
+     It keeps its place in the hierarchy on weight and colour instead: 400 against
+     500, and dimmed, so a sublabel sits under its group heading without changing
+     voice. */
+  .sublabel{font-family:var(--mono);font-weight:400;font-size:10px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--muted);opacity:.72;margin:10px 0 7px}
   .chip{font-family:var(--sans);font-weight:500;font-size:11.5px;letter-spacing:0;color:var(--text-2);
     background:transparent;border:1px solid var(--line);border-radius:var(--r-pill);
     padding:5px 11px;cursor:pointer;transition:.15s;line-height:1.35}
@@ -192,7 +198,7 @@
     <div class="group" data-panel>
       <button class="phead" type="button" aria-expanded="false"><span>Palette</span><i class="caret"></i></button>
       <div class="pbody">
-      <div class="sublabel">Deck</div>
+      <div class="sublabel">General</div>
       <div class="chips" id="palettes"></div>
       <div class="glabel" id="roomsLabel" style="margin:14px 0 8px;display:none">Rooms</div>
       <div class="chips" id="palettesRooms"></div>
@@ -235,6 +241,7 @@
       <div class="row" data-ctrl="offsetY"><label>Offset Y</label></div>
       <div class="row" data-ctrl="blur"><label>Blur</label></div>
       <div class="row" data-ctrl="roundness"><label>Roundness</label></div>
+      <div class="row" data-ctrl="taper"><label>Taper</label></div>
       <div class="glabel" style="margin:16px 0 8px">Shadow</div>
       <div class="sublabel">Shape</div>
       <div class="chips" id="shadowShapes" style="margin-bottom:2px"></div>
@@ -531,75 +538,63 @@ const SHADOWS=[
        Arch now travels about a fifth of its blur radius, which is the softest in the
        set by some way and is what an arch of light wants. */
 const TYPES=[
-  /* SET C. These six exist to SHOW a client the shapes the tool makes — six
-     recognisable buckets on a slide, not six starting points to work off. That is
-     what sets the bar: each has to read as its own picture at thumbnail size, next
-     to the other five, on one page.
-     Set B moved almost nothing because it reached for warp alone, and warp cannot
-     reach: measured on the 16:9 frame those slides use, its edge travel ran 11 to 30
-     percent of the blur radius that averages it away, so five of the six came out
-     visually identical to set A. Warp here runs 45 to 75 percent, which puts travel
-     at 36 to 79 percent of the blur — inside the range Randomize already rolls
-     (it goes to 85), so nothing here is out of family.
-     Three levers do the actual separating, and two of them were untouched until now:
-       DIRECTION — five of six used to be lit from the top, which is why the grid
-         read as one picture six times. Four axes now: top, top-left, top-right, and
-         Curtain lit from below-right, which is the only one in the set whose light
-         does not come from above — worth one slot on a page meant to show range.
-       MID and FALLOFF — where the middle stop sits on the ramp, and how long the
-         light holds before it decays. These reshape the whole picture at a scale
-         blur cannot erase, which is exactly what warp cannot do.
-       SHADOW — depth, shape and softness, varied per type rather than nearly
-         matched across the set.
-     Seeds are unchanged from set A so anything that survived stays recognisable. */
+  /* FOUR, not six. Lantern and Curtain are gone: the set exists to show a client the
+     shapes the light takes, and four that are plainly different does that better than
+     six where two are arguing.
+     Alcove and Arch were the pair still reading as one idea — both a soft mass of
+     light held off the frame, differing mainly in how round the corners were. They
+     are now separated by construction rather than by degree. Alcove tapers: its lit
+     end is 30% narrower than its dark end, so the border closes at the top and opens
+     out toward the bottom, and the shape is a trapezoid rather than a rectangle.
+     Arch goes to full roundness, where the corners are cut back to half the shorter
+     side and the top reads as a single curve rather than as a rectangle with its
+     corners eased. One is straight-sided and narrowing, the other is round and
+     square-on: no amount of adjusting one turns it into the other. */
+  /* The trapezoid bleeds. Width is 120 — a fifth wider than the frame — so the dark
+     end runs off both sides, and the taper is what brings the shape back inside as
+     it climbs toward the light. The two together mean the side border is not a
+     constant strip: the field's edges cross the frame at 40% of the way down, so
+     below that there is no border at all and above it one opens out to 6.8% at the
+     lit end. That is the point of a taper, and it could not happen while the widest
+     part of the shape still sat inside the frame.
+     Two earlier passes kept the whole shape inside and traded width against taper,
+     which only ever moved the border in or out as a band — 17.8% down each side at
+     92 x 30, 10.2% at 102 x 22, even all the way down both times.
+     The blur hold does not fight this: it pulls an edge in only while that edge sits
+     inside the frame and fades to nothing as it crosses, so a bled side is left
+     alone. Height, offsets and blur are unchanged, so the top edge reads as it did. */
   {n:'Alcove',  d:'light inset on every side, dark closing all round',
-   s:{form:'field',roundness:0.12,width:0.82,height:0.74,offsetX:-0.02,offsetY:0.02,blur:0.10,
-      organic:0.28,warpFreq:0.28,warpRand:0.55, mid:0.40,falloff:0.52,
+   /* THE UNEVEN SHOULDER. One top corner was carrying a dark wedge the other did not,
+      which read as a mistake rather than as a shape. Two things in the warp make a
+      symmetrical field asymmetrical, and both scale with Amount: the edge wander
+      itself, and a tilt of up to a fifth of a radian applied to the whole ramp axis.
+      At 28 Amount that tilt reached about 4 degrees, which is enough to darken one
+      corner and not the other on a field this wide.
+      Amount comes down to 14 and Variety from 55 to 30, which halves the wander and
+      the tilt together. This is a deterministic fix rather than a reroll: shuffling
+      the seed would move the wedge somewhere else without making it less likely.
+      Taller again: 120, with the offset at 18 holding the top edge at 3% of the frame
+      and the bottom running 23% past it. */
+   s:{form:'field',roundness:0.12,taper:0.28,width:1.20,height:1.20,offsetX:0,offsetY:0.18,blur:0.065,
+      organic:0.14,warpFreq:0.28,warpRand:0.30, mid:0.40,falloff:0.52,
       shadow:'drift',  erodeDepth:0.16,erodeCount:2,erodeSpread:0.18,shadowSoft:0.70,seed:311,dir:'up'}},
 
-  /* The most blur in the set, and the roundest. Falloff low so the light spreads
-     through the arch rather than sitting at its top edge. */
   {n:'Arch',    d:'an arch of light, dark closing over the top and sides',
-   s:{form:'field',roundness:0.85,width:0.94,height:0.84,offsetX:0.01,offsetY:0.06,blur:0.18,
+   /* Back up a step: offset 12 to 9, which lifts the top edge from 16% to 13% —
+      between where it sat two passes ago and where it went. Blur back to 15. */
+   s:{form:'field',roundness:1.00,taper:0,width:0.94,height:0.82,offsetX:0.01,offsetY:0.09,blur:0.15,
       organic:0.55,warpFreq:0.24,warpRand:0.45, mid:0.52,falloff:0.30,
       shadow:'swell',  erodeDepth:0.12,erodeCount:1,erodeSpread:0.24,shadowSoft:0.78,seed:742,dir:'up'}},
 
-  /* Lit off the top-left corner, so its ramp runs diagonally and it stops being the
-     same vertical picture as Horizon. The most warp and the least shadow in the set:
-     with no border and no mass, the wandering edge is the only incident in it. */
   {n:'Wash',    d:'light running off every edge, no border at all',
-   s:{form:'field',roundness:0,   width:1.24,height:1.24,offsetX:-0.03,offsetY:0.02,blur:0.07,
+   s:{form:'field',roundness:0,   taper:0,width:1.24,height:1.24,offsetX:-0.03,offsetY:0.02,blur:0.07,
       organic:0.75,warpFreq:0.18,warpRand:0.70, mid:0.50,falloff:0.55,
       shadow:'fray',   erodeDepth:0.08,erodeCount:4,erodeSpread:0.12,shadowSoft:0.72,seed:118,dir:'upleft'}},
 
-  /* Falloff at 62 with the mid low: the light holds at its edge and then drops away
-     fast, which is what makes a horizon a horizon rather than a tall soft band. Held
-     to 70 percent height so the lit mass never reaches halfway down the frame. */
   {n:'Horizon', d:'light held to one edge, dark opposite',
-   s:{form:'field',roundness:0,   width:1.24,height:0.70,offsetX:0.02,offsetY:-0.06,blur:0.10,
+   s:{form:'field',roundness:0,   taper:0,width:1.24,height:0.70,offsetX:0.02,offsetY:-0.06,blur:0.10,
       organic:0.45,warpFreq:0.36,warpRand:0.60, mid:0.38,falloff:0.62,
-      shadow:'scallop',erodeDepth:0.16,erodeCount:3,erodeSpread:0.20,shadowSoft:0.68,seed:906,dir:'up'}},
-
-  /* Pushed hard into its corner — both offsets at the limit, the mid high so the
-     light gathers instead of spreading, and a wedge shadow raking away from it. */
-  {n:'Lantern', d:'light gathered into one corner',
-   s:{form:'field',roundness:0.34,width:1.06,height:1.02,offsetX:-0.06,offsetY:-0.06,blur:0.14,
-      organic:0.65,warpFreq:0.44,warpRand:0.78, mid:0.56,falloff:0.50,
-      shadow:'wedge',  erodeDepth:0.22,erodeCount:2,erodeSpread:0.17,shadowSoft:0.70,seed:455,dir:'upright'}},
-
-  /* CURTAIN, in place of Veil. Veil promised a shadow drawn ACROSS the light, and
-     the renderer cannot do that — shadows enter from the edge opposite the light and
-     visible shadow is available light times density, so a shadow can only eat in from
-     the dark end. The name described something no output would ever show. Set B tried
-     to buy the difference by lighting it from the side, which by the doc's own rule
-     ("a Horizon lit from the left is the same type") just made it a Horizon.
-     Curtain is what the tool actually produces and what the picture actually is: one
-     deep mass drawn in from a corner, at the depth ceiling, spread wide, and the
-     least soft edge in the set so it reads as a drawn thing rather than a fade. */
-  {n:'Curtain', d:'a dark mass drawn in from one corner, closing over the light',
-   s:{form:'field',roundness:0.04,width:1.16,height:1.10,offsetX:0.02,offsetY:0.01,blur:0.13,
-      organic:0.60,warpFreq:0.26,warpRand:0.85, mid:0.46,falloff:0.42,
-      shadow:'swell',  erodeDepth:0.30,erodeCount:1,erodeSpread:0.27,shadowSoft:0.55,seed:203,dir:'downright'}}
+      shadow:'scallop',erodeDepth:0.16,erodeCount:3,erodeSpread:0.20,shadowSoft:0.68,seed:906,dir:'up'}}
 ];
 const SHADOWPROFILE={
   /* count, width, depth are multipliers on the sliders; skew bends the bite so its
@@ -672,57 +667,65 @@ const PALETTES=[
      #410813, the shipped one is #260A0D. It reads as a cooler, deeper room. */
   {g:'room',n:'Smoke',    c:['#170708','#36121B','#6B6679']},
   {g:'room',n:'Bitters',  c:['#200C04','#762722','#CF8042']},
+  /* VELLUM. The one light palette, sitting with the rest rather than in a row of
+     its own — a row of one was a category, and this is a member of the set: the
+     counterweight to Nocturne at the other end of it.
+     Sampled from the menu artwork the way the room palettes are sampled from the
+     renders. Read straight off, the menu is a narrower picture than the palette it
+     replaces: its whole range spans L* 76 to 87 and its brightest pixel is #EEE3C5,
+     so it never reaches #F6E9C2 — the old anchor is not in the artwork. These stops
+     are the widened read, taken at the 1st, 50th and 99th percentiles rather than at
+     the bands, which keeps the menu's colour exactly (hue 95 to 96, chroma 15.7 to
+     17.5) while restoring a 14.3 L* spread. At the band values the ground and middle
+     sit 5 levels apart and the ramp flattens into a fill.
+     Dark ink (#0B0A0A) clears 10:1 on every stop, so type sits anywhere on it. */
+  {g:'room',n:'Vellum',   c:['#C2B89A','#D1C8AB','#EAE0BF']},
 
-  /* THE LIGHT SET. Every palette until now ran dark, and these are the inverse: the
-     ramp still climbs from ground to light, but it starts in warm tan rather than in
-     near-black, so the whole picture sits high. All three reach the same anchor at
-     their light end — #F6E9C2, luminance 233 — and differ in how far down they start,
-     which is what separates a cream wash from a gold one. */
-  {g:'light',n:'Vellum',  c:['#CDC2A2','#E6DDC1','#F6E9C2']},
-  {g:'light',n:'Linen',   c:['#B39B65','#D7C598','#F6E9C2']},
-  {g:'light',n:'Honey',   c:['#8D6834','#CCAA66','#F6E9C2']},
+
 
   /* THE ROOMS, sampled from the renders rather than from the V1 gradients made from
      them — a generation closer to the source.
      Sampled in bands, not at the extremes. A room render's darkest pixels are crushed
      black and its brightest are the lamp bulbs, and taking those gives four palettes
-     whose light stop is the same cream every time: #F6E4B2, #FDECC5, #FAF1AC,
-     #F9EFC8 across the four, which is the bulb rather than the room. The ground is
-     the median of the 3rd to 10th percentile, the middle of the 45th to 60th, and
-     the light of the 86th to 96th — high enough to be the lit surfaces, below the
-     blown-out sources. That is what keeps the Gold Bar gold and the Rossa Lounge red
-     instead of making both of them cream. */
-/* Each room is a blend of what the render gave and what V1 had, weighted by which
-     one was preferred. Rossa Lounge and Gold Bar sit at 22% toward V1 — the render
-     version was the better one and this is a touch of the old warmth, not a retreat
-     from it. Dining Room and Member's Bar sit at 68% toward V1, because that is where
-     their character was, with the render pulling their grounds down out of the washed
-     mid-tones V1 had left them in.
-     Darkening is done in linear light too — scaling the encoded bytes crushes hue
-     and saturation along with the value, while scaling the linear quantity moves
-     only the depth.
-     Mixed in LINEAR light, not in sRGB. Averaging #0D0603 and #420714 as plain bytes
-     lands halfway up the encoding curve and comes out muddy; converting to linear,
-     mixing, and converting back keeps the result on the line between the two colours
-     as the eye reads it. */
-  /* ground down to the luminance Rossa Lounge and Gold Bar sit at, and the olive
-     pushed toward the green the room actually reads as — saturation up half again
-     on both the middle and the light, with a small hue shift to match. */
-  {g:'space',n:'Dining Room', c:['#180C11','#615829','#CEC387']},
-  /* Gold Bar is the reference outright rather than a blend. Its ground was sitting
-     at luminance 53 against the reference's 13 and its middle at 75 against 33 —
-     the light stop was already right, so the whole difference was the depth
-     beneath it. */
-  /* highlight saturation 46% to 65%, luminance held */
-  /* Midtone lifted to sit 43% of the way from ground to light, which is where the
-     two palettes that arch nicely already sat — Member's Bar at 45%, Dining Room at
-     40%, against these two at 11 to 13%. The arching comes from the shadow having a
-     long mid-range to cut across; a midtone hugging the ground gives it nothing to
-     work in. Hue and saturation are unchanged, only the depth. */
-  {g:'space',n:'Gold Bar',    c:['#1D0A01','#8B4414','#D8A346']},
-  {g:'space',n:"Member's Bar",c:['#2C060D','#6C5156','#BCB091']},
+     whose light stop is the same cream every time, which is the bulb rather than the
+     room. The ground is the median of the 3rd to 10th percentile, the middle of the
+     45th to 60th, and the light of the 86th to 96th — high enough to be the lit
+     surfaces, below the blown-out sources. That is what keeps the Gold Bar gold and
+     the Rossa Lounge red instead of making both of them cream.
+     Each is a blend of what the render gave and what V1 had, weighted by which one
+     was preferred, and mixed in LINEAR light: averaging as plain bytes lands halfway
+     up the encoding curve and comes out muddy, while converting to linear, mixing and
+     converting back keeps the result on the line between the two colours as the eye
+     reads it.
+     NAMED FOR THE DRINK, NOT THE ROOM, and listed in the order the identity documents
+     use. The names are marketing rather than description — Garnet's light is a pale
+     rose cream and Aubergine's is olive-gold — and that is fine, but the source room
+     is recorded here so the sampling can always be traced back:
+       Garnet    <- the Entry Bar render   (was Member's Bar)
+       Aubergine <- the Vault render       (was Dining Room)
+       Bourbon   <- the Gold Bar render
+       Crimson   <- the Rossa Lounge render
+     COJE's original V1 values are kept alongside, since these are their colours and
+     the source should not have to be dug out of version history:
+       Dining Room   #29131D #99904C #C6C6BA
+       Gold Bar      #BD582D #DA9835 #F1D8A5
+       Member's Bar  #420714 #ADB3C4 #C4C6A0
+       Rossa Lounge  #511C18 #7B191E #F2B164 */
+  {g:'space',n:'Garnet',    c:['#2C060D','#6C5156','#BCB091']},
+  /* ground down to the luminance the warm two sit at, and the olive pushed toward the
+     green the room actually reads as — saturation up half again on the middle and the
+     light, with a small hue shift to match. */
+  {g:'space',n:'Aubergine', c:['#180C11','#615829','#CEC387']},
+  /* The reference outright rather than a blend: its ground was sitting at luminance 53
+     against the reference's 13 and its middle at 75 against 33, so the whole
+     difference was the depth beneath a light stop that was already right. Midtone
+     lifted to 43% of the way from ground to light, which is where the two palettes
+     that arch nicely already sat — the arching comes from the shadow having a long
+     mid-range to cut across, and a midtone hugging the ground gives it nothing to
+     work in. */
+  {g:'space',n:'Bourbon',   c:['#1D0A01','#8B4414','#D8A346']},
   /* darkened and pushed about a fifth further in saturation */
-  {g:'space',n:'Rossa Lounge',c:['#290907','#BC1D14','#CA6C36']}
+  {g:'space',n:'Crimson',   c:['#290907','#BC1D14','#CA6C36']}
   /* Palettes sit at roughly ground x0.62, mid and light x0.80 of the values COJE
      supplied — brought back up from the x0.41 / x0.45 / x0.38 of the dark rounds,
      but not all the way to the originals. Deep grounds with luminous cores, which
@@ -800,7 +803,7 @@ const S={
      slider is reached for. At the old default of 13% the bottom edge already
      carried a visible warp: measured, its wobble was 0.68 against 0.33 with the
      shadow off. Good in an output, wrong in a starting point. */
-  roundness:0,
+  roundness:0, taper:0,
   shadow:'swell', shadowSoft:0.7, erodeDepth:0, erodeCount:3, erodeSpread:0.16, seed:184,
   grain:0.12, grainSize:1, grainStyle:'neutral', texture:'grain',
   ref:[]
@@ -829,13 +832,20 @@ const CTRLS=[
      leave 9% and 13%, and the offsets can add 6% to one side. */
   {id:'width',    min:0.82,max:1.25,step:0.01, scale:100,dec:0,unit:'%'},
   {id:'height',   min:0.74,max:1.25,step:0.01, scale:100,dec:0,unit:'%'},
-  {id:'offsetX',  min:-0.06,max:0.06,step:0.005,scale:100,dec:0,unit:'%'},
-  {id:'offsetY',  min:-0.06,max:0.06,step:0.005,scale:100,dec:0,unit:'%'},
+  /* +-18, which is where fieldBox clamps the offset — the slider ends where the
+     renderer stops listening rather than short of it, so a value it shows is a value
+     that moves the field. Randomize rolls +-4.5 and is untouched by the wider
+     range. */
+  {id:'offsetX',  min:-0.18,max:0.18,step:0.005,scale:100,dec:0,unit:'%'},
+  {id:'offsetY',  min:-0.18,max:0.18,step:0.005,scale:100,dec:0,unit:'%'},
   {id:'blur',     min:0.03,max:0.38,step:0.005,scale:100,dec:0,unit:'%'},
   /* Corner roundness. At 0 the field is the rectangle it has always been and the
      renderer takes the same fast path it always took; above 0 the corners are cut
      back, at most to half the shorter side. */
   {id:'roundness',min:0,   max:1,   step:0.01, scale:100,dec:0,unit:'%'},
+  /* Negative narrows the dark end instead of the lit one. Out of Randomize: it is a
+     shape decision, not an exploration. */
+  {id:'taper',    min:-0.6,max:0.6, step:0.01, scale:100,dec:0,unit:'%'},
   /* 30, not 40: past 30 the outline has eaten as far as it can and the last quarter
      of the slider produced no change at all — 14.79 at 30, 35 and 40 alike. */
   {id:'erodeDepth', min:0, max:0.30,step:0.005,scale:100,dec:0,unit:'%'},
@@ -909,8 +919,13 @@ function fieldBox(W,H){
      off-centre compositions are reachable now, which they were not. */
   const wS=clamp(S.width,0.60,1.6), hS=clamp(S.height==null?0.82:S.height,0.60,1.6);
   const w=W*wS, h=H*hS;
-  const ox=clamp(S.offsetX==null?0:S.offsetX,-0.12,0.12)*W;
-  const oy=clamp(S.offsetY==null?0:S.offsetY,-0.12,0.12)*H;
+  /* +-18, not +-12. A field taller than the frame has to be pushed further than a
+     small one to keep its top edge in the same place — at 120% height, holding the
+     top at 3% of the frame needs 18. The clamp is here to stop a field being driven
+     off the frame entirely, and at 18 with the sizes the controls allow it still
+     cannot be. */
+  const ox=clamp(S.offsetX==null?0:S.offsetX,-0.18,0.18)*W;
+  const oy=clamp(S.offsetY==null?0:S.offsetY,-0.18,0.18)*H;
   /* a small automatic settle toward the light, so the ramp always has room to run
      without the user having to dial an offset to get it */
   /* the light vector comes from DIRVEC here, not from the render's tilted axis:
@@ -1421,7 +1436,24 @@ function fieldOutline(bx,amp,rng){
   const horiz=formHoriz();
   const uLen=horiz?bx.h:bx.w, vLen=horiz?bx.w:bx.h;
   const m=mapUnit(bx,formAxis());
-  const raw=unitOutline((S.form==='field'&&(S.roundness||0)>=0.01)?'soft':S.form,uLen/vLen,rng).map(p=>m(p[0],p[1]));
+  /* TAPER. Narrows the outline toward one end in unit space before it is mapped to
+     the frame, which turns the field into a trapezoid: at 30 the lit end is 30%
+     narrower than the dark end, so the border closes at the light and opens out
+     away from it. It runs in u only, so nothing about the ramp, the blur, the hold
+     or the shadow has to know about it — those all work on the mapped outline and
+     see an ordinary field of a slightly different shape.
+     Positive narrows the LIT end (light spreading as it travels); negative narrows
+     the dark end. At 0 every point is unchanged and the geometry is exactly what it
+     was, which is why this cannot affect anything that does not ask for it. */
+  const tpr=clamp(S.taper==null?0:S.taper,-0.6,0.6);
+  const rawU=unitOutline((S.form==='field'&&((S.roundness||0)>=0.01||tpr!==0))?'soft':S.form,uLen/vLen,rng);
+  /* The narrowing eases rather than running straight. A linear taper draws the sides
+     in at a constant angle from end to end, which is a plain trapezoid — the eye
+     reads the angle before it reads the light. Smoothstepped, the sides leave the
+     dark end almost parallel, do their turning through the middle, and settle again
+     at the lit end. Same width at both ends, gentler everywhere between. */
+  const ease=p=>p*p*(3-2*p);
+  const raw=(tpr===0?rawU:rawU.map(p=>[0.5+(p[0]-0.5)*(1-tpr*ease(1-p[1])),p[1]])).map(p=>m(p[0],p[1]));
   const pts=resample(raw,320);
   if(amp<0.5)return pts;
   const wv=waveFn(rng);
@@ -1830,7 +1862,7 @@ ${envelope(ramp,o=>1-crossFade(o))}
   else {
     const pad=sd*3+motionPad;
     defs.push(blurFilter('filter0_f'+sfx,sd,bx.x-pad-amp,bx.y-pad-amp,bx.w+2*(pad+amp),bx.h+2*(pad+amp)));
-    if(!motion && amp<0.5 && S.form==='field' && (S.roundness||0)<0.01){
+    if(!motion && amp<0.5 && S.form==='field' && (S.roundness||0)<0.01 && !(S.taper||0)){
       body.push(`<g filter="url(#filter0_f${sfx})">\n<rect x="${bx.x.toFixed(0)}" y="${bx.y.toFixed(0)}" width="${bx.w.toFixed(0)}" height="${bx.h.toFixed(0)}" fill="url(#paint0_linear${sfx})"/>\n</g>`);
     }else{
       const pts=fieldOutline(bx,amp,rng);
@@ -2210,7 +2242,7 @@ const schedule=()=>{if(raf)cancelAnimationFrame(raf);raf=requestAnimationFrame(d
    default is supposed to be was only clean before the first Randomize. Types set
    warp now too, which would have made the same stickiness show up when clicking
    between them. */
-const KEYS=['frame','form','dir','colors','mid','falloff','exposure','sat','contrast','highlights','midtones','shadows','organic','fieldDir','width','height','offsetX','offsetY','blur','roundness','shadow','shadowSoft','erodeDepth','erodeCount','erodeSpread','warpFreq','warpRand','seed','grain','grainSize','grainStyle','texture','ref'];
+const KEYS=['frame','form','dir','colors','mid','falloff','exposure','sat','contrast','highlights','midtones','shadows','organic','fieldDir','width','height','offsetX','offsetY','blur','roundness','taper','shadow','shadowSoft','erodeDepth','erodeCount','erodeSpread','warpFreq','warpRand','seed','grain','grainSize','grainStyle','texture','ref'];
 function snap(){const o={};KEYS.forEach(k=>o[k]=S[k]);return JSON.stringify(o);}
 const DEFAULT_SNAP=snap();
 let baseline=snap(), undoStack=[], redoStack=[];
@@ -2405,10 +2437,10 @@ function syncChips(){
     c.setAttribute('aria-pressed', c.dataset.cols===cur?'true':'false'));
 }
 
-/* Two sets, each in its own row. "Deck" is the five gradients from the Members Deck;
-   "Rooms" is sampled from renders of the rooms themselves. The Rooms heading hides
-   itself while that set is empty, so the panel never shows a label with nothing
-   under it. */
+/* Two sets, each in its own row. "General" is the palettes that belong to the
+   identity rather than to a place — five dark and Vellum at the light end; "Rooms"
+   is sampled from renders of the rooms themselves. Each heading hides itself while
+   its set is empty, so the panel never shows a label with nothing under it. */
 [['palettes','room'],['palettesRooms','space'],['palettesLight','light']].forEach(([id,g])=>{
   const el=$(id); el.innerHTML='';
   const set=PALETTES.filter(p=>p.g===g);
