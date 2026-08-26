@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Gradient Studio Lite — Pilot</title>
+<title>Gradient Studio Lite — Types C — Pilot</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Geist+Mono:wght@400;500&display=swap">
@@ -196,6 +196,8 @@
       <div class="chips" id="palettes"></div>
       <div class="glabel" id="roomsLabel" style="margin:14px 0 8px;display:none">Rooms</div>
       <div class="chips" id="palettesRooms"></div>
+      <div class="glabel" id="lightLabel" style="margin:14px 0 8px;display:none">Light</div>
+      <div class="chips" id="palettesLight"></div>
       <div style="height:14px"></div>
       <div class="stop"><span class="sw" id="sw0"><input type="color" id="c0"></span><span class="nm">Ground</span><span class="hex" id="h0"></span></div>
       <div class="stop"><span class="sw" id="sw1"><input type="color" id="c1"></span><span class="nm">Middle</span><span class="hex" id="h1"></span></div>
@@ -519,20 +521,75 @@ const SHADOWS=[
    for. Vignette is the only one that changes the field's outline; the rest are the same
    rectangle at different sizes and offsets. */
 const TYPES=[
-  {n:'Field',      d:'light inset on every side, dark all round',
-   s:{form:'field',roundness:0,width:0.86,height:0.76,offsetX:0,offsetY:0,blur:0.06,erodeDepth:0,dir:'up'}},
-  /* Sat lower in the frame so the dark closes over the top as well as the sides —
-     an arch rather than a rectangle with soft corners. */
-  {n:'Vignette',   d:'an arch of light, dark closing over the top and sides',
-   s:{form:'field',roundness:0.82,width:0.92,height:0.82,offsetX:0,offsetY:0.06,blur:0.15,erodeDepth:0,dir:'up'}},
-  {n:'Full bleed', d:'light runs off every edge, no border at all',
-   s:{form:'field',roundness:0,width:1.18,height:1.18,offsetX:0,offsetY:0,blur:0.08,erodeDepth:0,dir:'up'}},
-  {n:'Band',       d:'light held to one edge, dark opposite',
-   s:{form:'field',roundness:0,width:1.18,height:0.74,offsetX:0,offsetY:-0.04,blur:0.07,erodeDepth:0,dir:'up'}},
-  {n:'Corner',     d:'light gathered into one corner',
-   s:{form:'field',roundness:0,width:1.12,height:1.12,offsetX:-0.05,offsetY:-0.05,blur:0.09,erodeDepth:0,dir:'upright'}},
-  {n:'Shadowed',   d:'a shadow reaching in across the light',
-   s:{form:'field',roundness:0,width:1.12,height:1.00,offsetX:0,offsetY:0,blur:0.07,erodeDepth:0.22,erodeCount:2,erodeSpread:0.20,dir:'up'}}
+  /* SET C. These six exist to SHOW a client the shapes the tool makes — six
+     recognisable buckets on a slide, not six starting points to work off. That is
+     what sets the bar: each has to read as its own picture at thumbnail size, next
+     to the other five, on one page.
+     Set B moved almost nothing because it reached for warp alone, and warp cannot
+     reach: measured on the 16:9 frame those slides use, its edge travel ran 11 to 30
+     percent of the blur radius that averages it away, so five of the six came out
+     visually identical to set A. Warp here runs 45 to 75 percent, which puts travel
+     at 36 to 79 percent of the blur — inside the range Randomize already rolls
+     (it goes to 85), so nothing here is out of family.
+     Three levers do the actual separating, and two of them were untouched until now:
+       DIRECTION — five of six used to be lit from the top, which is why the grid
+         read as one picture six times. Four axes now: top, top-left, top-right, and
+         Curtain lit from below-right, which is the only one in the set whose light
+         does not come from above — worth one slot on a page meant to show range.
+       MID and FALLOFF — where the middle stop sits on the ramp, and how long the
+         light holds before it decays. These reshape the whole picture at a scale
+         blur cannot erase, which is exactly what warp cannot do.
+       SHADOW — depth, shape and softness, varied per type rather than nearly
+         matched across the set.
+     Seeds are unchanged from set A so anything that survived stays recognisable. */
+  {n:'Alcove',  d:'light inset on every side, dark closing all round',
+   s:{form:'field',roundness:0.12,width:0.84,height:0.74,offsetX:-0.02,offsetY:0.02,blur:0.06,
+      organic:0.50,warpFreq:0.28,warpRand:0.55, mid:0.44,falloff:0.38,
+      shadow:'drift',  erodeDepth:0.16,erodeCount:2,erodeSpread:0.18,shadowSoft:0.70,seed:311,dir:'up'}},
+
+  /* The most blur in the set, and the roundest. Falloff low so the light spreads
+     through the arch rather than sitting at its top edge. */
+  {n:'Arch',    d:'an arch of light, dark closing over the top and sides',
+   s:{form:'field',roundness:0.85,width:0.94,height:0.84,offsetX:0.01,offsetY:0.06,blur:0.13,
+      organic:0.55,warpFreq:0.24,warpRand:0.45, mid:0.52,falloff:0.30,
+      shadow:'swell',  erodeDepth:0.12,erodeCount:1,erodeSpread:0.24,shadowSoft:0.78,seed:742,dir:'up'}},
+
+  /* Lit off the top-left corner, so its ramp runs diagonally and it stops being the
+     same vertical picture as Horizon. The most warp and the least shadow in the set:
+     with no border and no mass, the wandering edge is the only incident in it. */
+  {n:'Wash',    d:'light running off every edge, no border at all',
+   s:{form:'field',roundness:0,   width:1.24,height:1.24,offsetX:-0.03,offsetY:0.02,blur:0.07,
+      organic:0.75,warpFreq:0.18,warpRand:0.70, mid:0.50,falloff:0.55,
+      shadow:'fray',   erodeDepth:0.08,erodeCount:4,erodeSpread:0.12,shadowSoft:0.72,seed:118,dir:'upleft'}},
+
+  /* Falloff at 62 with the mid low: the light holds at its edge and then drops away
+     fast, which is what makes a horizon a horizon rather than a tall soft band. Held
+     to 70 percent height so the lit mass never reaches halfway down the frame. */
+  {n:'Horizon', d:'light held to one edge, dark opposite',
+   s:{form:'field',roundness:0,   width:1.24,height:0.70,offsetX:0.02,offsetY:-0.06,blur:0.10,
+      organic:0.45,warpFreq:0.36,warpRand:0.60, mid:0.38,falloff:0.62,
+      shadow:'scallop',erodeDepth:0.16,erodeCount:3,erodeSpread:0.20,shadowSoft:0.68,seed:906,dir:'up'}},
+
+  /* Pushed hard into its corner — both offsets at the limit, the mid high so the
+     light gathers instead of spreading, and a wedge shadow raking away from it. */
+  {n:'Lantern', d:'light gathered into one corner',
+   s:{form:'field',roundness:0.34,width:1.06,height:1.02,offsetX:-0.06,offsetY:-0.06,blur:0.09,
+      organic:0.65,warpFreq:0.44,warpRand:0.78, mid:0.56,falloff:0.50,
+      shadow:'wedge',  erodeDepth:0.22,erodeCount:2,erodeSpread:0.17,shadowSoft:0.70,seed:455,dir:'upright'}},
+
+  /* CURTAIN, in place of Veil. Veil promised a shadow drawn ACROSS the light, and
+     the renderer cannot do that — shadows enter from the edge opposite the light and
+     visible shadow is available light times density, so a shadow can only eat in from
+     the dark end. The name described something no output would ever show. Set B tried
+     to buy the difference by lighting it from the side, which by the doc's own rule
+     ("a Horizon lit from the left is the same type") just made it a Horizon.
+     Curtain is what the tool actually produces and what the picture actually is: one
+     deep mass drawn in from a corner, at the depth ceiling, spread wide, and the
+     least soft edge in the set so it reads as a drawn thing rather than a fade. */
+  {n:'Curtain', d:'a dark mass drawn in from one corner, closing over the light',
+   s:{form:'field',roundness:0.04,width:1.16,height:1.10,offsetX:0.02,offsetY:0.01,blur:0.08,
+      organic:0.60,warpFreq:0.26,warpRand:0.85, mid:0.46,falloff:0.42,
+      shadow:'swell',  erodeDepth:0.30,erodeCount:1,erodeSpread:0.27,shadowSoft:0.55,seed:203,dir:'downright'}}
 ];
 const SHADOWPROFILE={
   /* count, width, depth are multipliers on the sliders; skew bends the bite so its
@@ -586,7 +643,7 @@ const PALETTES=[
      Ember is the darkest by a distance and barely lifts off its ground; Amber and
      Ochre are the two warm ones, Amber the more restrained; Slate is the only cool
      one, its light stop sitting at 240 degrees against everyone else's 26 to 32. */
-  {g:'room',n:'Ember', c:['#0B0A0A','#1F1A14','#332617']},
+  {g:'room',n:'Nocturne', c:['#0B0A0A','#1F1A14','#332617']},
   /* Gold Bar moved from deck 3 to deck 2. Deck 3 renders at a highlight of 163
      against deck 2's 112 — the presets each matched their assigned source to
      within 2%, so the brightness complaint was the mapping, not the values. */
@@ -594,17 +651,26 @@ const PALETTES=[
      Ochre in hue at 28 degrees against 26 but brighter and stronger: mean luminance
      77 against 56, chroma 80% against 77%. The palette it replaced was a version
      that never made it into the deck. */
-  {g:'room',n:'Amber', c:['#2B0A0F','#8D4315','#E38838']},
+  {g:'room',n:'Cognac',   c:['#2B0A0F','#8D4315','#E38838']},
   /* Sand is the fifth reference, which had no preset. All five gradients in the
      deck now have one. It is the lightest of the set — mean luminance 90 against
      Amber's 60 — and the only one whose ground is plum rather than maroon. */
   /* ground and middle taken down; the light stop is where it should be */
-  {g:'room',n:'Sand',  c:['#1F0914','#714427','#D59C65']},
+  {g:'room',n:'Champagne',c:['#1F0914','#714427','#D59C65']},
   /* Slate reworked to its shipped reference. The light stop moved from 240 degrees
      to 256 — further into blue — and the whole palette darkened: the old ground was
      #410813, the shipped one is #260A0D. It reads as a cooler, deeper room. */
-  {g:'room',n:'Slate', c:['#170708','#36121B','#6B6679']},
-  {g:'room',n:'Ochre', c:['#200C04','#762722','#CF8042']},
+  {g:'room',n:'Smoke',    c:['#170708','#36121B','#6B6679']},
+  {g:'room',n:'Bitters',  c:['#200C04','#762722','#CF8042']},
+
+  /* THE LIGHT SET. Every palette until now ran dark, and these are the inverse: the
+     ramp still climbs from ground to light, but it starts in warm tan rather than in
+     near-black, so the whole picture sits high. All three reach the same anchor at
+     their light end — #F6E9C2, luminance 233 — and differ in how far down they start,
+     which is what separates a cream wash from a gold one. */
+  {g:'light',n:'Vellum',  c:['#CDC2A2','#E6DDC1','#F6E9C2']},
+  {g:'light',n:'Linen',   c:['#B39B65','#D7C598','#F6E9C2']},
+  {g:'light',n:'Honey',   c:['#8D6834','#CCAA66','#F6E9C2']},
 
   /* THE ROOMS, sampled from the renders rather than from the V1 gradients made from
      them — a generation closer to the source.
@@ -2127,7 +2193,14 @@ let raf=null;
 const schedule=()=>{if(raf)cancelAnimationFrame(raf);raf=requestAnimationFrame(draw);};
 
 /* ---------- history ---------- */
-const KEYS=['frame','form','dir','colors','mid','falloff','exposure','sat','contrast','highlights','shadows','width','height','offsetX','offsetY','blur','roundness','shadow','shadowSoft','erodeDepth','erodeCount','erodeSpread','warpFreq','warpRand','seed','grain','grainSize','grainStyle','texture','ref'];
+/* 'organic', 'midtones' and 'fieldDir' were missing from this list, which is what
+   snapshots, undo and Reset are built from. Anything absent is invisible to all
+   three: Randomize rolls warp up to 85%, and Reset could not put it back, so a
+   reset field kept whatever wander the last roll gave it — the clean rectangle the
+   default is supposed to be was only clean before the first Randomize. Types set
+   warp now too, which would have made the same stickiness show up when clicking
+   between them. */
+const KEYS=['frame','form','dir','colors','mid','falloff','exposure','sat','contrast','highlights','midtones','shadows','organic','fieldDir','width','height','offsetX','offsetY','blur','roundness','shadow','shadowSoft','erodeDepth','erodeCount','erodeSpread','warpFreq','warpRand','seed','grain','grainSize','grainStyle','texture','ref'];
 function snap(){const o={};KEYS.forEach(k=>o[k]=S[k]);return JSON.stringify(o);}
 const DEFAULT_SNAP=snap();
 let baseline=snap(), undoStack=[], redoStack=[];
@@ -2318,7 +2391,7 @@ function syncChips(){
   })();
   chips($('dirs'),DIRS,()=>S.dir,v=>S.dir=v);
   const cur=S.colors.join();
-  document.querySelectorAll('#palettes .chip, #palettesRooms .chip').forEach(c=>
+  document.querySelectorAll('#palettes .chip, #palettesRooms .chip, #palettesLight .chip').forEach(c=>
     c.setAttribute('aria-pressed', c.dataset.cols===cur?'true':'false'));
 }
 
@@ -2326,11 +2399,15 @@ function syncChips(){
    "Rooms" is sampled from renders of the rooms themselves. The Rooms heading hides
    itself while that set is empty, so the panel never shows a label with nothing
    under it. */
-[['palettes','room'],['palettesRooms','space']].forEach(([id,g])=>{
+[['palettes','room'],['palettesRooms','space'],['palettesLight','light']].forEach(([id,g])=>{
   const el=$(id); el.innerHTML='';
   const set=PALETTES.filter(p=>p.g===g);
   if(id==='palettesRooms'){
     const lab=$('roomsLabel');
+    if(lab)lab.style.display=set.length?'':'none';
+  }
+  if(id==='palettesLight'){
+    const lab=$('lightLabel');
     if(lab)lab.style.display=set.length?'':'none';
   }
   set.forEach(p=>{
