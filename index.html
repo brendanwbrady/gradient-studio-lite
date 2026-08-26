@@ -575,7 +575,7 @@ const TYPES=[
       the seed would move the wedge somewhere else without making it less likely.
       Taller again: 120, with the offset at 18 holding the top edge at 3% of the frame
       and the bottom running 23% past it. */
-   s:{form:'field',roundness:0.12,taper:0.28,width:1.20,height:1.20,offsetX:0,offsetY:0.18,blur:0.065,
+   s:{form:'field',roundness:0.12,taper:0.28,width:1.20,height:1.20,offsetX:0,offsetY:0.18,blur:0.085,
       organic:0.14,warpFreq:0.28,warpRand:0.30, mid:0.40,falloff:0.52,
       shadow:'drift',  erodeDepth:0.16,erodeCount:2,erodeSpread:0.18,shadowSoft:0.70,seed:311,dir:'up'}},
 
@@ -591,9 +591,24 @@ const TYPES=[
       organic:0.75,warpFreq:0.18,warpRand:0.70, mid:0.50,falloff:0.55,
       shadow:'fray',   erodeDepth:0.08,erodeCount:4,erodeSpread:0.12,shadowSoft:0.72,seed:118,dir:'upleft'}},
 
+  /* WHY THIS ONE READ MUDDY. The light stop is not reached anywhere in the picture,
+     and it is geometry rather than colour that stops it. Falloff sets how much of the
+     ramp is held at full light, and that share is measured along the FIELD — so a
+     short field turns a generous falloff into a thin band. At 70% height with 62
+     falloff the fully-lit band was 132px on a 1080 frame against a blur radius of
+     54px: 2.4 radii, where Wash gets 5.7 and Alcove 4.3. A band that thin is largely
+     averaged away by its own blur before it can be seen, and what is left reads as a
+     tone below the palette's light stop.
+     Three moves, all of them widening the band against the blur rather than touching
+     the palette: height 70 to 78, falloff 62 to 76, blur 10 to 8.5. The band goes to
+     216px against a 46px radius — 4.7 radii, in line with the rest of the set. The
+     offset comes in from -6 to -2 as well, so the band sits clear of the frame edge
+     instead of straddling it, and the mid moves up to 42 so the ramp below the light
+     is not weighted so far toward the ground. It is still the type where light is
+     held to one edge; it just reaches the colour it is meant to reach. */
   {n:'Horizon', d:'light held to one edge, dark opposite',
-   s:{form:'field',roundness:0,   taper:0,width:1.24,height:0.70,offsetX:0.02,offsetY:-0.06,blur:0.10,
-      organic:0.45,warpFreq:0.36,warpRand:0.60, mid:0.38,falloff:0.62,
+   s:{form:'field',roundness:0,   taper:0,width:1.24,height:0.78,offsetX:0.02,offsetY:-0.02,blur:0.085,
+      organic:0.45,warpFreq:0.36,warpRand:0.60, mid:0.42,falloff:0.76,
       shadow:'scallop',erodeDepth:0.16,erodeCount:3,erodeSpread:0.20,shadowSoft:0.68,seed:906,dir:'up'}}
 ];
 const SHADOWPROFILE={
